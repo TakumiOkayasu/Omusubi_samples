@@ -1,6 +1,12 @@
 #include "omusubi/platform/m5stack/m5stack_system_context.h"
 #include <M5Stack.h>
 #include <esp_system.h>
+#include <BLEDevice.h>
+#include <BLEServer.h>
+#include <BLEClient.h>
+#include <BLEUtils.h>
+#include <BLEScan.h>
+#include <BLEAdvertisedDevice.h>
 #include <memory>
 
 namespace omusubi {
@@ -1010,6 +1016,733 @@ public:
     }
 };
 
+class M5StackBLECharacteristic final : public BLECharacteristic {
+private:
+    BLERemoteCharacteristic* remote_char_;  // Centralモード用
+    ::BLECharacteristic* local_char_;        // Peripheralモード用
+    char uuid_[64];
+    uint16_t properties_;
+    
+public:
+    M5StackBLECharacteristic(BLERemoteCharacteristic* remote_char)
+        : remote_char_(remote_char)
+        , local_char_(nullptr)
+        , properties_(0) {
+        if (remote_char_) {
+            strncpy(uuid_, remote_char_->getUUID().toString().c_str(), sizeof(uuid_) - 1);
+            uuid_[sizeof(uuid_) - 1] = '\0';
+            
+            // プロパティを取得
+            if (remote_char_->canRead()) {
+                properties_ |= static_cast<uint16_t>(BLECharacteristicProperty::read);
+            }
+            if (remote_char_->canWrite()) {
+                properties_ |= static_cast<uint16_t>(BLECharacteristicProperty::write);
+            }
+            if (remote_char_->canNotify()) {
+                properties_ |= static_cast<uint16_t>(BLECharacteristicProperty::notify);
+            }
+            if (remote_char_->canIndicate()) {
+                properties_ |= static_cast<uint16_t>(BLECharacteristicProperty::indicate);
+            }
+            if (remote_char_->canWriteNoResponse()) {
+                properties_ |= static_cast<uint16_t>(BLECharacteristicProperty::write_no_rsp);
+            }
+        }
+    }
+    
+    M5StackBLECharacteristic(::BLECharacteristic* local_char, uint16_t properties)
+        : remote_char_(nullptr)
+        , local_char_(local_char)
+        , properties_(properties) {
+        if (local_char_) {
+            strncpy(uuid_, local_char_->getUUID().toString().c_str(), sizeof(uuid_) - 1);
+            uuid_[sizeof(uuid_) - 1] = '\0';
+        }
+    }
+    
+    FixedString<64> get_uuid() const override {
+        return FixedString<64>(uuid_);
+    }
+    
+    FixedBuffer<512> read() const override {
+        FixedBuffer<512> result;
+        
+        if (remote_char_ && remote_char_->canRead()) {
+            std::string value = remote_char_->readValue();
+            for (size_t i = 0; i < value.length() && i < 512; ++i) {
+                result.append(static_cast<uint8_t>(value[i]));
+            }
+        } else if (local_char_) {
+            std::string value = local_char_->getValue();
+            for (size_t i = 0; i < value.length() && i < 512; ++i) {
+                result.append(static_cast<uint8_t>(value[i]));
+            }
+        }
+        
+        return result;
+    }
+    
+    bool write(const uint8_t* data, uint32_t length) override {
+        if (!data || length == 0) return false;
+        
+        if (remote_char_ && remote_char_->canWrite()) {
+            remote_char_->writeValue(const_cast<uint8_t*>(data), length, true);
+            return true;
+        } else if (local_char_) {
+            local_char_->setValue(const_cast<uint8_t*>(data), length);
+            return true;
+        }
+        
+        return false;
+    }
+    
+    FixedString<256> read_string() const override {
+        FixedString<256> result;
+        
+        if (remote_char_ && remote_char_->canRead()) {
+            std::string value = remote_char_->readValue();
+            for (size_t i = 0; i < value.length() && i < 256; ++i) {
+                if (!result.append(value[i])) break;
+            }
+        } else if (local_char_) {
+            std::string value = local_char_->getValue();
+            for (size_t i = 0; i < value.length() && i < 256; ++i) {
+                if (!result.append(value[i])) break;
+            }
+        }
+        
+        return result;
+    }
+    
+    bool write_string(StringView value) override {
+        if (remote_char_ && remote_char_->canWrite()) {
+            std::string str;
+            for (uint32_t i = 0; i < value.byte_length(); ++i) {
+                str += value[i];
+            }
+            remote_char_->writeValue(str, true);
+            return true;
+        } else if (local_char_) {
+            std::string str;
+            for (uint32_t i = 0; i < value.byte_length(); ++i) {
+                str += value[i];
+            }
+            local_char_->setValue(str);
+            return true;
+        }
+        
+        return false;
+    }
+    
+    bool notify(const uint8_t* data, uint32_t length) override {
+        if (!local_char_ || !data || length == 0) return false;
+        
+        local_char_->setValue(const_cast<uint8_t*>(data), length);
+        local_char_->notify();
+        return true;
+    }
+    
+    uint16_t get_properties() const override {
+        return properties_;
+    }
+};
+
+// ========================================
+// M5Stack BLE Service実装
+// ========================================
+class M5StackBLEService final : public BLEService {
+private:
+    BLERemoteService* remote_service_;  // Centralモード用
+    ::BLEService* local_service_;        // Peripheralモード用
+    char uuid_[64];
+    
+    M5StackBLECharacteristic* characteristics_[16];
+    uint8_t characteristic_count_;
+    
+public:
+    M5StackBLEService(BLERemoteService* remote_service)
+        : remote_service_(remote_service)
+        , local_service_(nullptr)
+        , characteristic_count_(0) {
+        if (remote_service_) {
+            strncpy(uuid_, remote_service_->getUUID().toString().c_str(), sizeof(uuid_) - 1);
+            uuid_[sizeof(uuid_) - 1] = '\0';
+        }
+        
+        for (uint8_t i = 0; i < 16; ++i) {
+            characteristics_[i] = nullptr;
+        }
+    }
+    
+    M5StackBLEService(::BLEService* local_service)
+        : remote_service_(nullptr)
+        , local_service_(local_service)
+        , characteristic_count_(0) {
+        if (local_service_) {
+            strncpy(uuid_, local_service_->getUUID().toString().c_str(), sizeof(uuid_) - 1);
+            uuid_[sizeof(uuid_) - 1] = '\0';
+        }
+        
+        for (uint8_t i = 0; i < 16; ++i) {
+            characteristics_[i] = nullptr;
+        }
+    }
+    
+    ~M5StackBLEService() {
+        for (uint8_t i = 0; i < characteristic_count_; ++i) {
+            delete characteristics_[i];
+        }
+    }
+    
+    FixedString<64> get_uuid() const override {
+        return FixedString<64>(uuid_);
+    }
+    
+    BLECharacteristic* add_characteristic(StringView uuid, uint16_t properties) override {
+        if (!local_service_ || characteristic_count_ >= 16) {
+            return nullptr;
+        }
+        
+        char uuid_str[64];
+        uint32_t len = (uuid.byte_length() < sizeof(uuid_str) - 1) ?
+                       uuid.byte_length() : sizeof(uuid_str) - 1;
+        for (uint32_t i = 0; i < len; ++i) {
+            uuid_str[i] = uuid[i];
+        }
+        uuid_str[len] = '\0';
+        
+        ::BLECharacteristic* char_obj = local_service_->createCharacteristic(
+            uuid_str,
+            properties
+        );
+        
+        if (!char_obj) return nullptr;
+        
+        M5StackBLECharacteristic* wrapper = new M5StackBLECharacteristic(char_obj, properties);
+        characteristics_[characteristic_count_++] = wrapper;
+        
+        return wrapper;
+    }
+    
+    BLECharacteristic* get_characteristic(StringView uuid) override {
+        for (uint8_t i = 0; i < characteristic_count_; ++i) {
+            if (characteristics_[i]->get_uuid().view() == uuid) {
+                return characteristics_[i];
+            }
+        }
+        
+        if (remote_service_) {
+            char uuid_str[64];
+            uint32_t len = (uuid.byte_length() < sizeof(uuid_str) - 1) ?
+                           uuid.byte_length() : sizeof(uuid_str) - 1;
+            for (uint32_t i = 0; i < len; ++i) {
+                uuid_str[i] = uuid[i];
+            }
+            uuid_str[len] = '\0';
+            
+            BLERemoteCharacteristic* remote_char = 
+                remote_service_->getCharacteristic(BLEUUID(uuid_str));
+            
+            if (remote_char && characteristic_count_ < 16) {
+                M5StackBLECharacteristic* wrapper = 
+                    new M5StackBLECharacteristic(remote_char);
+                characteristics_[characteristic_count_++] = wrapper;
+                return wrapper;
+            }
+        }
+        
+        return nullptr;
+    }
+    
+    uint8_t get_characteristic_count() const override {
+        return characteristic_count_;
+    }
+    
+    BLECharacteristic* get_characteristic_at(uint8_t index) override {
+        if (index >= characteristic_count_) {
+            return nullptr;
+        }
+        return characteristics_[index];
+    }
+};
+
+// ========================================
+// M5Stack BLE Communication実装
+// ========================================
+class M5StackBLECommunication final : public BLECommunication {
+private:
+    BLEMode mode_;
+    bool initialized_;
+    bool connected_;
+    bool advertising_;
+    char local_name_[64];
+    
+    // Central mode
+    BLEClient* client_;
+    BLEScan* scan_;
+    
+    // Peripheral mode
+    BLEServer* server_;
+    
+    // Services
+    M5StackBLEService* services_[8];
+    uint8_t service_count_;
+    
+    // Scan results
+    struct FoundDevice {
+        char name[64];
+        char address[32];
+        int32_t rssi;
+        bool connectable;
+    };
+    FoundDevice found_devices_[10];
+    uint8_t found_count_;
+    bool scanning_;
+    
+public:
+    M5StackBLECommunication()
+        : mode_(BLEMode::idle)
+        , initialized_(false)
+        , connected_(false)
+        , advertising_(false)
+        , client_(nullptr)
+        , scan_(nullptr)
+        , server_(nullptr)
+        , service_count_(0)
+        , found_count_(0)
+        , scanning_(false) {
+        
+        strncpy(local_name_, "M5Stack-BLE", sizeof(local_name_));
+        local_name_[sizeof(local_name_) - 1] = '\0';
+        
+        for (uint8_t i = 0; i < 8; ++i) {
+            services_[i] = nullptr;
+        }
+    }
+    
+    ~M5StackBLECommunication() {
+        end();
+    }
+    
+    // ========================================
+    // モード管理
+    // ========================================
+    
+    bool begin_central(StringView device_name) override {
+        if (initialized_) {
+            end();
+        }
+        
+        uint32_t len = (device_name.byte_length() < sizeof(local_name_) - 1) ?
+                       device_name.byte_length() : sizeof(local_name_) - 1;
+        for (uint32_t i = 0; i < len; ++i) {
+            local_name_[i] = device_name[i];
+        }
+        local_name_[len] = '\0';
+        
+        BLEDevice::init(local_name_);
+        
+        client_ = BLEDevice::createClient();
+        scan_ = BLEDevice::getScan();
+        scan_->setActiveScan(true);
+        scan_->setInterval(100);
+        scan_->setWindow(99);
+        
+        mode_ = BLEMode::central;
+        initialized_ = true;
+        
+        return true;
+    }
+    
+    bool begin_peripheral(StringView device_name) override {
+        if (initialized_) {
+            end();
+        }
+        
+        uint32_t len = (device_name.byte_length() < sizeof(local_name_) - 1) ?
+                       device_name.byte_length() : sizeof(local_name_) - 1;
+        for (uint32_t i = 0; i < len; ++i) {
+            local_name_[i] = device_name[i];
+        }
+        local_name_[len] = '\0';
+        
+        BLEDevice::init(local_name_);
+        
+        server_ = BLEDevice::createServer();
+        
+        mode_ = BLEMode::peripheral;
+        initialized_ = true;
+        
+        return true;
+    }
+    
+    BLEMode get_mode() const override {
+        return mode_;
+    }
+    
+    void end() override {
+        if (!initialized_) return;
+        
+        if (connected_) {
+            disconnect();
+        }
+        
+        if (advertising_) {
+            stop_advertising();
+        }
+        
+        for (uint8_t i = 0; i < service_count_; ++i) {
+            delete services_[i];
+            services_[i] = nullptr;
+        }
+        service_count_ = 0;
+        
+        BLEDevice::deinit(true);
+        
+        mode_ = BLEMode::idle;
+        initialized_ = false;
+        client_ = nullptr;
+        scan_ = nullptr;
+        server_ = nullptr;
+    }
+    
+    // ========================================
+    // Connectable実装
+    // ========================================
+    
+    bool connect() override {
+        return false;  // BLEではデバイス名またはアドレスが必要
+    }
+    
+    void disconnect() override {
+        if (!connected_) return;
+        
+        if (client_) {
+            client_->disconnect();
+        }
+        
+        connected_ = false;
+    }
+    
+    bool is_connected() const override {
+        if (mode_ == BLEMode::central && client_) {
+            return client_->isConnected();
+        } else if (mode_ == BLEMode::peripheral && server_) {
+            return server_->getConnectedCount() > 0;
+        }
+        return false;
+    }
+    
+    // ========================================
+    // Scannable実装
+    // ========================================
+    
+    void start_scan() override {
+        if (!scan_ || mode_ != BLEMode::central) return;
+        
+        found_count_ = 0;
+        scanning_ = true;
+        
+        BLEScanResults results = scan_->start(5, false);
+        
+        uint8_t count = results.getCount();
+        found_count_ = (count < 10) ? count : 10;
+        
+        for (uint8_t i = 0; i < found_count_; ++i) {
+            BLEAdvertisedDevice device = results.getDevice(i);
+            
+            // デバイス名
+            if (device.haveName()) {
+                strncpy(found_devices_[i].name, device.getName().c_str(), 
+                       sizeof(found_devices_[i].name) - 1);
+            } else {
+                strncpy(found_devices_[i].name, "Unknown", 
+                       sizeof(found_devices_[i].name) - 1);
+            }
+            found_devices_[i].name[sizeof(found_devices_[i].name) - 1] = '\0';
+            
+            // MACアドレス
+            strncpy(found_devices_[i].address, device.getAddress().toString().c_str(),
+                   sizeof(found_devices_[i].address) - 1);
+            found_devices_[i].address[sizeof(found_devices_[i].address) - 1] = '\0';
+            
+            // RSSI
+            found_devices_[i].rssi = device.getRSSI();
+            
+            // Connectable
+            found_devices_[i].connectable = true;  // BLEはデフォルトでconnectable
+        }
+        
+        scan_->clearResults();
+        scanning_ = false;
+    }
+    
+    void stop_scan() override {
+        if (scanning_ && scan_) {
+            scan_->stop();
+            scanning_ = false;
+        }
+    }
+    
+    bool is_scanning() const override {
+        return scanning_;
+    }
+    
+    uint8_t get_found_count() const override {
+        return found_count_;
+    }
+    
+    FixedString<64> get_found_name(uint8_t index) const override {
+        if (index >= found_count_) {
+            return FixedString<64>();
+        }
+        return FixedString<64>(found_devices_[index].name);
+    }
+    
+    // ========================================
+    // Central（クライアント）モード
+    // ========================================
+    
+    bool connect_to(StringView device_name, uint32_t timeout_ms) override {
+        if (mode_ != BLEMode::central || !client_) {
+            return false;
+        }
+        
+        // スキャンしてデバイスを探す
+        start_scan();
+        
+        for (uint8_t i = 0; i < found_count_; ++i) {
+            if (get_found_name(i).view() == device_name) {
+                return connect_to_address(
+                    StringView::from_c_string(found_devices_[i].address),
+                    timeout_ms
+                );
+            }
+        }
+        
+        return false;
+    }
+    
+    bool connect_to_address(StringView address, uint32_t timeout_ms) override {
+        if (mode_ != BLEMode::central || !client_) {
+            return false;
+        }
+        
+        char addr_str[32];
+        uint32_t len = (address.byte_length() < sizeof(addr_str) - 1) ?
+                       address.byte_length() : sizeof(addr_str) - 1;
+        for (uint32_t i = 0; i < len; ++i) {
+            addr_str[i] = address[i];
+        }
+        addr_str[len] = '\0';
+        
+        BLEAddress ble_addr(addr_str);
+        
+        if (timeout_ms > 0) {
+            uint32_t start = millis();
+            while (millis() - start < timeout_ms) {
+                if (client_->connect(ble_addr)) {
+                    connected_ = true;
+                    return true;
+                }
+                ::delay(100);
+            }
+            return false;
+        } else {
+            if (client_->connect(ble_addr)) {
+                connected_ = true;
+                return true;
+            }
+            return false;
+        }
+    }
+    
+    bool connect_to_found(uint8_t index) override {
+        if (index >= found_count_) {
+            return false;
+        }
+        
+        return connect_to_address(
+            StringView::from_c_string(found_devices_[index].address),
+            0
+        );
+    }
+    
+    BLEService* get_service(StringView uuid) override {
+        if (!client_ || !connected_) {
+            return nullptr;
+        }
+        
+        // 既存のサービスをチェック
+        for (uint8_t i = 0; i < service_count_; ++i) {
+            if (services_[i]->get_uuid().view() == uuid) {
+                return services_[i];
+            }
+        }
+        
+        // 新しいサービスを取得
+        if (service_count_ >= 8) {
+            return nullptr;
+        }
+        
+        char uuid_str[64];
+        uint32_t len = (uuid.byte_length() < sizeof(uuid_str) - 1) ?
+                       uuid.byte_length() : sizeof(uuid_str) - 1;
+        for (uint32_t i = 0; i < len; ++i) {
+            uuid_str[i] = uuid[i];
+        }
+        uuid_str[len] = '\0';
+        
+        BLERemoteService* remote_service = client_->getService(BLEUUID(uuid_str));
+        
+        if (!remote_service) {
+            return nullptr;
+        }
+        
+        M5StackBLEService* wrapper = new M5StackBLEService(remote_service);
+        services_[service_count_++] = wrapper;
+        
+        return wrapper;
+    }
+    
+    uint8_t get_service_count() const override {
+        return service_count_;
+    }
+    
+    BLEService* get_service_at(uint8_t index) override {
+        if (index >= service_count_) {
+            return nullptr;
+        }
+        return services_[index];
+    }
+    
+    // ========================================
+    // Peripheral（サーバー）モード
+    // ========================================
+    
+    BLEService* add_service(StringView uuid) override {
+        if (!server_ || mode_ != BLEMode::peripheral || service_count_ >= 8) {
+            return nullptr;
+        }
+        
+        char uuid_str[64];
+        uint32_t len = (uuid.byte_length() < sizeof(uuid_str) - 1) ?
+                       uuid.byte_length() : sizeof(uuid_str) - 1;
+        for (uint32_t i = 0; i < len; ++i) {
+            uuid_str[i] = uuid[i];
+        }
+        uuid_str[len] = '\0';
+        
+        ::BLEService* local_service = server_->createService(uuid_str);
+        
+        if (!local_service) {
+            return nullptr;
+        }
+        
+        M5StackBLEService* wrapper = new M5StackBLEService(local_service);
+        services_[service_count_++] = wrapper;
+        
+        return wrapper;
+    }
+    
+    bool start_advertising() override {
+        if (!server_ || mode_ != BLEMode::peripheral) {
+            return false;
+        }
+        
+        // すべてのサービスを開始
+        for (uint8_t i = 0; i < service_count_; ++i) {
+            // サービスを開始（内部的に実行）
+        }
+        
+        BLEAdvertising* advertising = BLEDevice::getAdvertising();
+        
+        // サービスUUIDを広告に追加
+        for (uint8_t i = 0; i < service_count_; ++i) {
+            FixedString<64> uuid = services_[i]->get_uuid();
+            char uuid_str[64];
+            for (uint32_t j = 0; j < uuid.byte_length(); ++j) {
+                uuid_str[j] = uuid.view()[j];
+            }
+            uuid_str[uuid.byte_length()] = '\0';
+            
+            advertising->addServiceUUID(uuid_str);
+        }
+        
+        advertising->setScanResponse(true);
+        advertising->setMinPreferred(0x06);
+        advertising->setMinPreferred(0x12);
+        
+        BLEDevice::startAdvertising();
+        
+        advertising_ = true;
+        return true;
+    }
+    
+    void stop_advertising() override {
+        if (!advertising_) return;
+        
+        BLEDevice::stopAdvertising();
+        advertising_ = false;
+    }
+    
+    bool is_advertising() const override {
+        return advertising_;
+    }
+    
+    // ========================================
+    // 共通情報
+    // ========================================
+    
+    void set_local_name(StringView name) override {
+        uint32_t len = (name.byte_length() < sizeof(local_name_) - 1) ?
+                       name.byte_length() : sizeof(local_name_) - 1;
+        for (uint32_t i = 0; i < len; ++i) {
+            local_name_[i] = name[i];
+        }
+        local_name_[len] = '\0';
+    }
+    
+    FixedString<64> get_local_name() const override {
+        return FixedString<64>(local_name_);
+    }
+    
+    FixedString<64> get_connected_device_name() const override {
+        // BLEでは接続後にデバイス名を直接取得するのは難しい
+        return FixedString<64>();
+    }
+    
+    FixedString<32> get_connected_device_address() const override {
+        if (client_ && connected_) {
+            std::string addr = client_->getPeerAddress().toString();
+            return FixedString<32>(addr.c_str());
+        }
+        return FixedString<32>();
+    }
+    
+    FixedString<32> get_found_address(uint8_t index) const override {
+        if (index >= found_count_) {
+            return FixedString<32>();
+        }
+        return FixedString<32>(found_devices_[index].address);
+    }
+    
+    int32_t get_found_signal_strength(uint8_t index) const override {
+        if (index >= found_count_) {
+            return -100;
+        }
+        return found_devices_[index].rssi;
+    }
+    
+    bool is_found_connectable(uint8_t index) const override {
+        if (index >= found_count_) {
+            return false;
+        }
+        return found_devices_[index].connectable;
+    }
+};
+
 // ========================================
 // M5StackSystemContext::Impl
 // ========================================
@@ -1020,6 +1753,7 @@ public:
     M5StackSerialCommunication serial1{1};
     M5StackBluetoothCommunication bluetooth;
     M5StackWiFiCommunication wifi;
+    M5StackBLECommunication ble;  // 追加
     M5StackButton button_a{39};
     M5StackButton button_b{38};
     M5StackButton button_c{37};
@@ -1071,7 +1805,7 @@ uint32_t M5StackSystemContext::get_free_memory() const {
 }
 
 PowerState M5StackSystemContext::get_power_state() const {
-    return PowerState::usb;  // 簡易実装
+    return PowerState::usb;  // TODO: 実装する
 }
 
 uint8_t M5StackSystemContext::get_battery_level() const {
@@ -1094,6 +1828,10 @@ BluetoothCommunication* M5StackSystemContext::get_bluetooth() {
 
 WiFiCommunication* M5StackSystemContext::get_wifi() {
     return &impl_->wifi;
+}
+
+BLECommunication* M5StackSystemContext::get_ble() {
+    return &impl_->ble;
 }
 
 Pressable* M5StackSystemContext::get_button(uint8_t index) {
