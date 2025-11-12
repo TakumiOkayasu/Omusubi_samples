@@ -22,6 +22,31 @@ SystemContextを中心としたクリーンなアーキテクチャにより、�
 - 🚧 Arduino (計画中)
 - 🚧 Raspberry Pi Pico (計画中)
 
+## 開発環境
+
+### Dev Container（推奨）
+
+このプロジェクトはDev Containerに対応しています。VS Code + Docker環境で簡単に開発を開始できます。
+
+**必要なもの:**
+- Docker Desktop
+- VS Code
+- Remote - Containers 拡張機能
+
+**開始方法:**
+1. リポジトリをクローン
+2. VS Codeでフォルダを開く
+3. 「Reopen in Container」を選択
+
+**環境の特徴:**
+- **コンパイラ:** Clang（最新版）
+- **ビルドツール:** CMake, Ninja, Make
+- **デバッグ:** GDB, Valgrind
+- **ロケール:** 日本語（ja_JP.UTF-8）
+- **タイムゾーン:** Asia/Tokyo
+
+Dev Containerを使用することで、環境構築の手間なく即座に開発を開始できます。
+
 ## インストール
 
 ### PlatformIO
@@ -58,14 +83,21 @@ using namespace omusubi;
 using namespace omusubi::literals;
 
 SystemContext& ctx = get_system_context();
+ConnectableContext* connectable = nullptr;
+InputContext* input = nullptr;
 SerialContext* serial = nullptr;
 Pressable* button = nullptr;
 
 void setup() {
     ctx.begin();
 
-    serial = ctx.get_serial(0);
-    button = ctx.get_button(0);
+    // Contextの取得
+    connectable = ctx.get_connectable_context();
+    input = ctx.get_input_context();
+
+    // デバイスの取得
+    serial = connectable->get_serial0_context();
+    button = input->get_button_a_context();
 
     serial->write_line("Hello, Omusubi!"_sv);
 }

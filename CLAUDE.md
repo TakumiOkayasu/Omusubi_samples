@@ -23,6 +23,34 @@ Omusubi is a lightweight, type-safe C++14 framework for embedded devices (primar
 - Header-only implementations use `.hpp`, declarations use `.h`
 - Japanese comments and documentation are standard
 
+## Development Environment
+
+### Dev Container
+
+このプロジェクトはDev Container環境で開発されています。
+
+**環境仕様:**
+- **ベースイメージ:** `silkeh/clang:latest`
+- **コンパイラ:** Clang（C++14サポート）
+- **ビルドツール:** Make, CMake, Ninja
+- **デバッグツール:** GDB, Valgrind
+- **ロケール:** ja_JP.UTF-8（日本語環境）
+- **タイムゾーン:** Asia/Tokyo
+
+**VS Code拡張機能:**
+- GitLens
+- Claude Code (`ghcr.io/anthropics/devcontainer-features/claude-code:1.0.5`)
+- Docker outside of Docker
+
+**開始方法:**
+```bash
+# VS Codeで開く
+code .
+
+# "Reopen in Container"を選択
+# → 自動的にDev Container環境が構築される
+```
+
 ## Build Commands
 
 ```bash
