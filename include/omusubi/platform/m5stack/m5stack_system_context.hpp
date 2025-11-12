@@ -34,6 +34,7 @@ public:
     SerialCommunication* get_serial(uint8_t port = 0) override;
     BluetoothCommunication* get_bluetooth() override;
     WiFiCommunication* get_wifi() override;
+    BLECommunication* get_ble() override;
 
     Pressable* get_button(uint8_t index) override;
     uint8_t get_button_count() const override;
