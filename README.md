@@ -4,7 +4,7 @@
 
 ## 概要
 
-Omusubiは、組み込みデバイス向けに設計されたモダンなC++14フレームワークです。
+Omusubiは、組み込みデバイス向けに設計されたモダンなC++17フレームワークです。
 SystemContextを中心としたクリーンなアーキテクチャにより、ハードウェアへの統一的なアクセスを提供します。
 
 ## 特徴
@@ -52,45 +52,29 @@ your_project/
 
 ### 基本的な使い方
 ```cpp
-#include <omusubi/omusubi.hpp>
+#include <omusubi/omusubi.h>
 
 using namespace omusubi;
 using namespace omusubi::literals;
 
 void setup() {
-    // SystemContextを取得
     SystemContext& ctx = get_system_context();
-    
-    // 初期化
     ctx.begin();
-    
-    // デバイスを取得して使用
+
     SerialCommunication* serial = ctx.get_serial(0);
-    if (serial) {
-        serial->write_line("Hello, Omusubi!"_sv);
-    }
-    
-    Displayable* display = ctx.get_display();
-    if (display) {
-        display->clear();
-        display->set_text_size(2);
-        display->write_line("Omusubi"_sv);
-    }
+    serial->write_line("Hello, Omusubi!"_sv);
 }
 
 void loop() {
     SystemContext& ctx = get_system_context();
     ctx.update();
-    
-    // ボタン処理
+
     Pressable* button = ctx.get_button(0);
-    if (button && button->was_pressed()) {
+    if (button->was_pressed()) {
         SerialCommunication* serial = ctx.get_serial(0);
-        if (serial) {
-            serial->write_line("Button pressed!"_sv);
-        }
+        serial->write_line("Button pressed!"_sv);
     }
-    
+
     ctx.delay(10);
 }
 ```
@@ -102,7 +86,7 @@ Omusubiの最大の特徴は、**インターフェースと実装の完全な�
 
 ### 例1: デバイス非依存な関数
 ```cpp
-#include <omusubi/omusubi.hpp>
+#include <omusubi/omusubi.h>
 
 using namespace omusubi;
 using namespace omusubi::literals;
@@ -141,7 +125,7 @@ void loop() {
 
 ### 例2: センサーデータの汎用処理
 ```cpp
-#include <omusubi/omusubi.hpp>
+#include <omusubi/omusubi.h>
 
 using namespace omusubi;
 using namespace omusubi::literals;
@@ -190,7 +174,7 @@ void loop() {
 
 ### 例3: 通信プロトコルの抽象化
 ```cpp
-#include <omusubi/omusubi.hpp>
+#include <omusubi/omusubi.h>
 
 using namespace omusubi;
 using namespace omusubi::literals;
@@ -303,6 +287,7 @@ uint32_t uptime = ctx.get_uptime_ms();
 SerialCommunication* serial = ctx.get_serial(0);
 BluetoothCommunication* bt = ctx.get_bluetooth();
 WiFiCommunication* wifi = ctx.get_wifi();
+BLECommunication* ble = ctx.get_ble();
 
 // 入力デバイス
 Pressable* button = ctx.get_button(0);
@@ -385,6 +370,32 @@ for (uint8_t i = 0; i < count; ++i) {
 }
 ```
 
+#### BLE通信
+```cpp
+BLECommunication* ble = ctx.get_ble();
+
+// Peripheralモード（サーバー）
+ble->begin_peripheral("M5Stack-BLE"_sv);
+BLEService* service = ble->add_service("SERVICE_UUID"_sv);
+BLECharacteristic* ch = service->add_characteristic(
+    "CHAR_UUID"_sv,
+    static_cast<uint16_t>(BLECharacteristicProperty::read) |
+    static_cast<uint16_t>(BLECharacteristicProperty::notify)
+);
+ble->start_advertising();
+
+// Centralモード（クライアント）
+ble->begin_central("M5Stack-Central"_sv);
+ble->start_scan();
+ctx.delay(3000);
+ble->stop_scan();
+
+uint8_t count = ble->get_found_count();
+for (uint8_t i = 0; i < count; ++i) {
+    FixedString<64> name = ble->get_found_name(i);
+}
+```
+
 ### センサー
 ```cpp
 Measurable3D* accel = ctx.get_accelerometer();
@@ -439,19 +450,41 @@ if (button->was_released()) {
 ## プロジェクト構造
 ```
 omusubi/
-├── include/
-│   └── omusubi/
-│       ├── omusubi.hpp              # メインヘッダ
-│       ├── system_context.hpp       # システムコンテキスト
-│       ├── core/                    # コア機能
-│       ├── interface/               # インターフェース層
-│       ├── device/                  # デバイス層
-│       └── platform/                # プラットフォーム実装
-│           └── m5stack/
-└── src/
-    ├── system_context.cpp
-    └── platform/
-        └── m5stack/
+├── include/omusubi/
+│   ├── omusubi.h                    # メインヘッダ
+│   ├── system_context.h             # システムコンテキスト
+│   ├── core/                        # コア機能
+│   │   ├── string_view.h           # 文字列ビュー
+│   │   ├── fixed_string.hpp        # 固定長文字列（実装あり）
+│   │   ├── fixed_buffer.hpp        # 固定長バッファ（実装あり）
+│   │   ├── types.h                 # 基本型定義
+│   │   └── mcu_config.h            # MCU設定
+│   ├── interface/                   # インターフェース層
+│   │   ├── readable.h
+│   │   ├── writable.h
+│   │   ├── connectable.h
+│   │   ├── scannable.h
+│   │   ├── pressable.h
+│   │   ├── measurable.h
+│   │   └── displayable.h
+│   ├── device/                      # デバイス層
+│   │   ├── serial_communication.h
+│   │   ├── bluetooth_communication.h
+│   │   ├── wifi_communication.h
+│   │   └── ble_communication.h
+│   └── platform/m5stack/           # プラットフォーム実装
+│       └── m5stack_system_context.hpp
+├── src/platform/m5stack/           # M5Stack実装
+│   └── m5stack_system_context.cpp
+├── examples/platform/m5stack/      # サンプルコード
+│   ├── Wi-Fi/
+│   │   ├── scan/main.cpp
+│   │   └── connection/main.cpp
+│   ├── bluetooth/main.cpp
+│   ├── ble_server/main.cpp
+│   └── ble_client/main.cpp
+├── main.cpp                        # エントリーポイント
+└── Makefile                        # ビルド設定
 ```
 
 ## ライセンス
