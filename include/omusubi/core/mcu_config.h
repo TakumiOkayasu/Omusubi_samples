@@ -1,34 +1,79 @@
 #pragma once
 
+#include <cstddef>
+
 /**
  * @file mcu_config.h
  * @brief MCU（マイコン）固有の設定定義
  *
- * デバイスやプラットフォームに応じた設定値やマクロを定義します。
+ * デバイスやプラットフォームに応じた設定値を定義します。
  * コンパイル時に各種制約や機能を調整できます。
  */
 
+namespace omusubi {
+namespace config {
+
+// ========================================
 // メモリ制約のあるMCU向けの設定
-#ifndef OMUSUBI_MAX_STRING_LENGTH
-#define OMUSUBI_MAX_STRING_LENGTH 256
-#endif
+// ========================================
 
-#ifndef OMUSUBI_MAX_BUFFER_SIZE
-#define OMUSUBI_MAX_BUFFER_SIZE 1024
-#endif
+/**
+ * @brief 文字列の最大長（デフォルト値）
+ */
+inline constexpr std::size_t MAX_STRING_LENGTH = 256;
 
+/**
+ * @brief バッファの最大サイズ（デフォルト値）
+ */
+inline constexpr std::size_t MAX_BUFFER_SIZE = 1024;
+
+// ========================================
 // デバッグビルドの判定
-#if defined(DEBUG) || defined(_DEBUG) || !defined(NDEBUG)
-#define OMUSUBI_DEBUG 1
-#else
-#define OMUSUBI_DEBUG 0
-#endif
+// ========================================
 
-// プラットフォーム判定
-#if defined(ESP32) || defined(ESP8266)
-#define OMUSUBI_PLATFORM_ESP 1
-#elif defined(ARDUINO)
-#define OMUSUBI_PLATFORM_ARDUINO 1
+/**
+ * @brief デバッグモードが有効かどうか
+ */
+inline constexpr bool is_debug_build() {
+#if defined(DEBUG) || defined(_DEBUG) || !defined(NDEBUG)
+    return true;
 #else
-#define OMUSUBI_PLATFORM_GENERIC 1
+    return false;
 #endif
+}
+
+// ========================================
+// プラットフォーム判定
+// ========================================
+
+/**
+ * @brief ESP32/ESP8266プラットフォームかどうか
+ */
+inline constexpr bool is_platform_esp() {
+#if defined(ESP32) || defined(ESP8266)
+    return true;
+#else
+    return false;
+#endif
+}
+
+/**
+ * @brief Arduinoプラットフォームかどうか
+ */
+inline constexpr bool is_platform_arduino() {
+#if defined(ARDUINO)
+    return true;
+#else
+    return false;
+#endif
+}
+
+/**
+ * @brief 汎用プラットフォームかどうか
+ */
+inline constexpr bool is_platform_generic() {
+    return !is_platform_esp() && !is_platform_arduino();
+}
+
+}  // namespace config
+}  // namespace omusubi
