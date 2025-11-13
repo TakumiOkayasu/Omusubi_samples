@@ -7,11 +7,6 @@ ENV TZ=Asia/Tokyo \
     DEVCONTAINER=true \
     DEBIAN_FRONTEND=noninteractive
 
-# Microsoft C++イメージには以下が既にインストール済み:
-# bash, curl, git, sudo, ssh, unzip, ca-certificates
-# build-essential, clang, cmake, ninja-build
-# gdb, clang-format, clang-tidy, clangd
-# 以下のパッケージのみ追加インストール
 RUN apt-get update && apt-get install -y --no-install-recommends \
     # 日本語ロケールとタイムゾーン設定用
     locales \
@@ -30,8 +25,7 @@ RUN curl -LsSf https://astral.sh/uv/install.sh | sh \
     && mv /root/.local/bin/uv /usr/local/bin/uv \
     && chmod 755 /usr/local/bin/uv
 
-# PlatformIOのインストール
-# uvを使ってインストール
+# PlatformIOをuvを使ってインストール
 RUN uv tool install platformio \
     && cp /root/.local/bin/pio* /usr/local/bin/ \
     && pio system info
@@ -44,7 +38,7 @@ RUN curl -o /usr/share/bash-completion/completions/git-completion.bash \
     && chmod 755 /usr/share/bash-completion/completions/git-*.bash \
     && chmod 755 /usr/share/bash-completion/completions/git-*.sh \
     # .bashrcに追記（上書きしない）
-    && cat >> /home/vscode/.bashrc <<'EOF'
+    && cat >> /home/${REMOTE_USER}/.bashrc <<'EOF'
 
 # Git補完機能とカスタムプロンプト
 if [ -f /usr/share/bash-completion/completions/git-completion.bash ]; then

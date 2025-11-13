@@ -19,7 +19,8 @@
       "Bash(sudo cat:*)",
       "Bash(echo:*)",
       "Bash(docker build:*)",
-      "Bash(docker run:*)"
+      "Bash(docker run:*)",
+      "WebFetch(domain:code.claude.com)"
     ],
     "deny": [],
     "ask": []

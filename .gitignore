@@ -42,6 +42,9 @@ Temporary Items
 ### dotenv ###
 .env
 
+### AI ###
+.claude/
+
 ### Linux ###
 *~
 
