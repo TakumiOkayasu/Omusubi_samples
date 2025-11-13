@@ -8,7 +8,9 @@
 	"containerUser": "vscode",
 	"mounts": [
 		"source=${localWorkspaceFolder}/,target=/workspace,type=bind",
-		"source=${localEnv:HOME}/.claude,target=/home/vscode/.claude,type=bind,consistency=cached"
+		"source=${localEnv:HOME}/.claude,target=/home/vscode/.claude,type=bind",
+		"source=${localEnv:HOME}/.claude.json,target=/home/vscode/.claude.json,type=bind",
+		"source=${localEnv:HOME}/.cache/claude-cli-nodejs,target=/home/vscode/.cache/claude-cli-nodejs,type=bind"
 	],
 	"remoteUser": "vscode",
 	"customizations": {
