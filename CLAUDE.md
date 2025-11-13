@@ -580,6 +580,7 @@ public:
 - **Header guards:** Use `#pragma once`
 - **Memory:** No heap allocation - stack or placement new with static buffers only
 - **Implementation Hiding:** When hiding platform-specific implementation details, do NOT expose implementation in headers (no `void* impl_`, no `struct Impl;` forward declarations). Place all implementation details in `.cpp` files using anonymous namespaces with static variables
+- **Static Variables in Implementation Files:** File-scope static variables in `.cpp` files must use the `static` keyword explicitly, even inside anonymous namespaces. Example: `static BluetoothImpl impl;` not just `BluetoothImpl impl;`
 - **Comments:** Do not write unnecessary comments. Only add comments when they provide essential information that cannot be inferred from the code itself. Implementation details should be self-evident from the code structure
 
 ## Core Types
