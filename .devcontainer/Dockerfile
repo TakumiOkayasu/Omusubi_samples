@@ -1,4 +1,4 @@
-FROM ubuntu:latest
+FROM mcr.microsoft.com/devcontainers/cpp:ubuntu-24.04
 
 ARG USER_NAME
 ARG USER_UID
@@ -11,36 +11,23 @@ ENV TZ=Asia/Tokyo \
     DEVCONTAINER=true \
     DEBIAN_FRONTEND=noninteractive
 
-RUN apt update && apt upgrade -y && apt install -y --no-install-recommends \
-    # Basic utilities
-    bash \
-    curl \
-    git \
-    sudo \
-    ssh \
-    unzip \
+# Microsoft C++イメージには以下が既にインストール済み:
+# bash, curl, git, sudo, ssh, unzip, ca-certificates
+# build-essential, clang, cmake, ninja-build
+# gdb, clang-format, clang-tidy, clangd
+# 以下のパッケージのみ追加インストール
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    # 日本語ロケールとタイムゾーン設定用
     locales \
     tzdata \
-    ca-certificates \
-    # C++ compiler and build tools
-    build-essential \
-    clang \
-    cmake \
-    ninja-build \
-    # Debug tools
-    gdb \
+    # 追加のデバッグ・ビルドツール
     valgrind \
     pkg-config \
-    # Code quality tools
-    clang-format \
-    clang-tidy \
-    clangd \
     bear \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* \
     && locale-gen ja_JP.UTF-8 \
     && localedef -f UTF-8 -i ja_JP ja_JP.UTF-8
-
 
 WORKDIR /tmp/scripts/
 

@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(clang --version:*)",
+      "Bash(clang++:*)",
+      "Bash(make:*)",
+      "Bash(./main)",
+      "Bash(git mv:*)",
+      "Bash(tree:*)",
+      "Bash(for file in include/omusubi/*.h include/omusubi/core/*.h include/omusubi/interface/*.h include/omusubi/device/*.h)",
+      "Bash(do echo \"#pragma once\")",
+      "Bash(\"$file\")",
+      "Bash(done)",
+      "Bash(find:*)",
+      "Bash(git add:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
