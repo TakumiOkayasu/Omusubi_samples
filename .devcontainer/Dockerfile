@@ -25,6 +25,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && locale-gen ja_JP.UTF-8 \
     && localedef -f UTF-8 -i ja_JP ja_JP.UTF-8
 
+# uvのインストール
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh \
+    && mv /root/.local/bin/uv /usr/local/bin/uv \
+    && chmod 755 /usr/local/bin/uv
+
+# PlatformIOのインストール
+# uvを使ってインストール
+RUN uv tool install platformio \
+    && cp /root/.local/bin/pio* /usr/local/bin/ \
+    && pio system info
+
 # terminal config - Git補完機能とカスタムプロンプトを追加
 RUN curl -o /usr/share/bash-completion/completions/git-completion.bash \
         https://raw.githubusercontent.com/git/git/master/contrib/completion/git-completion.bash \

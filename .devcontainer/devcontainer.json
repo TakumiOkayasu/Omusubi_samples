@@ -20,7 +20,8 @@
 				"ms-vscode.cmake-tools",
 				"twxs.cmake",
 				"xaver.clang-format",
-				"notskm.clang-tidy"
+				"notskm.clang-tidy",
+				"platformio.platformio-ide"
 			],
 			"settings": {
 				"terminal.integrated.defaultProfile.linux": "bash",
