@@ -1,6 +1,7 @@
 #include "omusubi/platform/m5stack/m5stack_system_context.hpp"
-#include <M5Stack.h>
+
 #include <esp_system.h>
+#include <M5Stack.h>
 
 namespace omusubi {
 namespace platform {
@@ -11,27 +12,9 @@ namespace m5stack {
 // ========================================
 
 M5StackSystemContext::M5StackSystemContext()
-    : connectable_()
-    , readable_(
-        connectable_.get_serial_context(0),
-        connectable_.get_serial_context(1),
-        connectable_.get_serial_context(2),
-        connectable_.get_bluetooth_context())
-    , writable_(
-        connectable_.get_serial_context(0),
-        connectable_.get_serial_context(1),
-        connectable_.get_serial_context(2),
-        connectable_.get_bluetooth_context())
-    , scannable_(
-        connectable_.get_bluetooth_context(),
-        connectable_.get_wifi_context(),
-        connectable_.get_ble_context())
-    , sensor_()
-    , input_()
-    , output_()
-    , system_info_()
-    , power_() {
-}
+    : connectable_(), readable_(connectable_.get_serial_context(0), connectable_.get_serial_context(1), connectable_.get_serial_context(2), connectable_.get_bluetooth_context()),
+      writable_(connectable_.get_serial_context(0), connectable_.get_serial_context(1), connectable_.get_serial_context(2), connectable_.get_bluetooth_context()),
+      scannable_(connectable_.get_bluetooth_context(), connectable_.get_wifi_context(), connectable_.get_ble_context()), sensor_(), input_(), output_(), system_info_(), power_() {}
 
 // ========================================
 // システム制御
@@ -58,6 +41,6 @@ void M5StackSystemContext::reset() {
     esp_restart();
 }
 
-}  // namespace m5stack
-}  // namespace platform
-}  // namespace omusubi
+} // namespace m5stack
+} // namespace platform
+} // namespace omusubi

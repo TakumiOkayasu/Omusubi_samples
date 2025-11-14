@@ -20,4 +20,4 @@ public:
     virtual void display(StringView text) = 0;
 };
 
-}  // namespace omusubi
+} // namespace omusubi

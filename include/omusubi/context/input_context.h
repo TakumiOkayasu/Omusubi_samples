@@ -26,4 +26,4 @@ public:
     // virtual TouchContext* get_touch_context() = 0;
 };
 
-}  // namespace omusubi
+} // namespace omusubi

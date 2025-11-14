@@ -38,6 +38,11 @@ WARNING_COUNT=0
 
 # Process each file
 while IFS= read -r file; do
+    # Skip platform-specific implementation files (require hardware-specific headers)
+    if [[ "$file" == *"/platform/"*".cpp" ]]; then
+        continue
+    fi
+
     echo "Checking: $file"
 
     # Determine language flag for .h files

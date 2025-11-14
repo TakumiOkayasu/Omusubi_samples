@@ -8,6 +8,7 @@ namespace omusubi {
 class BluetoothContext;
 class WiFiContext;
 class BLEContext;
+
 namespace platform {
 namespace m5stack {
 
@@ -21,21 +22,17 @@ private:
     BLEContext* ble_;
 
 public:
-    M5StackScannableContext(
-        BluetoothContext* bluetooth,
-        WiFiContext* wifi,
-        BLEContext* ble)
-        : bluetooth_(bluetooth)
-        , wifi_(wifi)
-        , ble_(ble) {}
+    M5StackScannableContext(BluetoothContext* bluetooth, WiFiContext* wifi, BLEContext* ble) : bluetooth_(bluetooth), wifi_(wifi), ble_(ble) {}
 
     ~M5StackScannableContext() override = default;
 
     BluetoothContext* get_bluetooth_context() const override { return bluetooth_; }
+
     WiFiContext* get_wifi_context() const override { return wifi_; }
+
     BLEContext* get_ble_context() const override { return ble_; }
 };
 
-}  // namespace m5stack
-}  // namespace platform
-}  // namespace omusubi
+} // namespace m5stack
+} // namespace platform
+} // namespace omusubi

@@ -19,6 +19,6 @@ public:
     bool is_charging() const override;
 };
 
-}  // namespace m5stack
-}  // namespace platform
-}  // namespace omusubi
+} // namespace m5stack
+} // namespace platform
+} // namespace omusubi

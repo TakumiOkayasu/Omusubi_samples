@@ -1,4 +1,5 @@
 #include "omusubi/system_context.h"
+
 #include "omusubi/platform/m5stack/m5stack_system_context.hpp"
 
 namespace omusubi {
@@ -15,4 +16,4 @@ SystemContext& get_system_context() {
     return inst;
 }
 
-}  // namespace omusubi
+} // namespace omusubi

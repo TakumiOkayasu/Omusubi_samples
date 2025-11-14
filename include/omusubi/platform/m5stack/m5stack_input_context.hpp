@@ -19,6 +19,6 @@ public:
     // TODO: 入力デバイスのgetterメソッドを実装
 };
 
-}  // namespace m5stack
-}  // namespace platform
-}  // namespace omusubi
+} // namespace m5stack
+} // namespace platform
+} // namespace omusubi

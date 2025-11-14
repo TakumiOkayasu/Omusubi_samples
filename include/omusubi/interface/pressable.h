@@ -20,4 +20,4 @@ public:
     virtual ButtonState get_state() const = 0;
 };
 
-}  // namespace omusubi
+} // namespace omusubi

@@ -1,6 +1,7 @@
 #include "omusubi/platform/m5stack/m5stack_system_info_context.hpp"
-#include <M5Stack.h>
+
 #include <esp_system.h>
+#include <M5Stack.h>
 
 namespace omusubi {
 namespace platform {
@@ -26,6 +27,6 @@ uint32_t M5StackSystemInfoContext::get_free_memory() const {
     return esp_get_free_heap_size();
 }
 
-}  // namespace m5stack
-}  // namespace platform
-}  // namespace omusubi
+} // namespace m5stack
+} // namespace platform
+} // namespace omusubi

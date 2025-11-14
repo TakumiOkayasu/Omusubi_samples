@@ -1,7 +1,9 @@
 #include "omusubi/platform/m5stack/m5stack_bluetooth_context.hpp"
+
 #include <BluetoothSerial.h>
-#include <new>  // placement new用
+
 #include <cstring>
+#include <new> // placement new用
 
 namespace omusubi {
 namespace platform {
@@ -25,14 +27,12 @@ struct BluetoothImpl {
         char address[32];
         int32_t rssi;
     };
+
     FoundDevice found_devices[10];
     uint8_t found_count;
     bool scanning;
 
-    BluetoothImpl()
-        : connected(false)
-        , found_count(0)
-        , scanning(false) {
+    BluetoothImpl() : connected(false), found_count(0), scanning(false) {
         strncpy(local_name, "M5Stack", sizeof(local_name));
         local_name[sizeof(local_name) - 1] = '\0';
     }
@@ -40,7 +40,7 @@ struct BluetoothImpl {
 
 // 静的変数として実装を保持（シングルトン）
 static BluetoothImpl impl;
-}  // namespace
+} // namespace
 
 M5StackBluetoothContext::M5StackBluetoothContext() {
     // 実装は静的変数なので、特に何もしない
@@ -143,6 +143,6 @@ uint8_t M5StackBluetoothContext::scan() {
     return impl.found_count;
 }
 
-}  // namespace m5stack
-}  // namespace platform
-}  // namespace omusubi
+} // namespace m5stack
+} // namespace platform
+} // namespace omusubi

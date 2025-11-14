@@ -26,4 +26,4 @@ public:
     // virtual SpeakerContext* get_speaker_context() = 0;
 };
 
-}  // namespace omusubi
+} // namespace omusubi

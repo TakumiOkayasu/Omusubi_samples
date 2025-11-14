@@ -26,4 +26,4 @@ public:
     // virtual TemperatureContext* get_temperature_context() = 0;
 };
 
-}  // namespace omusubi
+} // namespace omusubi

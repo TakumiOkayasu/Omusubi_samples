@@ -83,4 +83,4 @@ protected:
  */
 SystemContext& get_system_context();
 
-}  // namespace omusubi
+} // namespace omusubi

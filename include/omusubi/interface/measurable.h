@@ -36,4 +36,4 @@ public:
     virtual Vector3 get_values() const = 0;
 };
 
-}  // namespace omusubi
+} // namespace omusubi

@@ -75,5 +75,5 @@ inline constexpr bool is_platform_generic() {
     return !is_platform_esp() && !is_platform_arduino();
 }
 
-}  // namespace config
-}  // namespace omusubi
+} // namespace config
+} // namespace omusubi

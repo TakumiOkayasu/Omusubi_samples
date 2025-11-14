@@ -19,6 +19,6 @@ public:
     // TODO: センサーデバイスのgetterメソッドを実装
 };
 
-}  // namespace m5stack
-}  // namespace platform
-}  // namespace omusubi
+} // namespace m5stack
+} // namespace platform
+} // namespace omusubi

@@ -21,6 +21,6 @@ public:
     uint32_t get_free_memory() const override;
 };
 
-}  // namespace m5stack
-}  // namespace platform
-}  // namespace omusubi
+} // namespace m5stack
+} // namespace platform
+} // namespace omusubi

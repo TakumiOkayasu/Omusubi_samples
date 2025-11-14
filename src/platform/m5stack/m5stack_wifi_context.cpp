@@ -1,7 +1,9 @@
 #include "omusubi/platform/m5stack/m5stack_wifi_context.hpp"
+
 #include <WiFi.h>
-#include <new>  // placement new用
+
 #include <cstring>
+#include <new> // placement new用
 
 namespace omusubi {
 namespace platform {
@@ -25,14 +27,12 @@ struct WiFiImpl {
         bool is_open;
         uint8_t encryption_type;
     };
+
     FoundNetwork found_networks[20];
     uint8_t found_count;
     bool scanning;
 
-    WiFiImpl()
-        : connected(false)
-        , found_count(0)
-        , scanning(false) {
+    WiFiImpl() : connected(false), found_count(0), scanning(false) {
         last_ssid[0] = '\0';
         last_password[0] = '\0';
     }
@@ -40,7 +40,7 @@ struct WiFiImpl {
 
 // 静的変数として実装を保持（シングルトン）
 static WiFiImpl impl;
-}  // namespace
+} // namespace
 
 M5StackWiFiContext::M5StackWiFiContext() {
     // 実装は静的変数なので、特に何もしない
@@ -57,7 +57,6 @@ M5StackWiFiContext::~M5StackWiFiContext() {
 // ========================================
 
 bool M5StackWiFiContext::connect() {
-    
     if (impl.connected) {
         return true;
     }
@@ -89,7 +88,6 @@ bool M5StackWiFiContext::connect() {
 // ========================================
 
 uint8_t M5StackWiFiContext::scan() {
-    
     if (impl.scanning) {
         return impl.found_count;
     }
@@ -107,8 +105,7 @@ uint8_t M5StackWiFiContext::scan() {
         for (uint8_t i = 0; i < impl.found_count; ++i) {
             // SSID
             String ssid = WiFi.SSID(i);
-            strncpy(impl.found_networks[i].ssid, ssid.c_str(),
-                   sizeof(impl.found_networks[i].ssid) - 1);
+            strncpy(impl.found_networks[i].ssid, ssid.c_str(), sizeof(impl.found_networks[i].ssid) - 1);
             impl.found_networks[i].ssid[sizeof(impl.found_networks[i].ssid) - 1] = '\0';
 
             // RSSI
@@ -126,6 +123,6 @@ uint8_t M5StackWiFiContext::scan() {
     return impl.found_count;
 }
 
-}  // namespace m5stack
-}  // namespace platform
-}  // namespace omusubi
+} // namespace m5stack
+} // namespace platform
+} // namespace omusubi

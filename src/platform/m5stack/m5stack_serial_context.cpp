@@ -1,6 +1,8 @@
 #include "omusubi/platform/m5stack/m5stack_serial_context.hpp"
+
 #include <M5Stack.h>
-#include <new>  // placement new用
+
+#include <new> // placement new用
 
 namespace omusubi {
 namespace platform {
@@ -18,17 +20,20 @@ struct SerialImpl {
     uint32_t baud_rate;
     bool connected;
 
-    explicit SerialImpl(uint8_t port_num)
-        : serial(nullptr)
-        , port(port_num)
-        , baud_rate(115200)
-        , connected(false) {
+    explicit SerialImpl(uint8_t port_num) : serial(nullptr), port(port_num), baud_rate(115200), connected(false) {
         // ポート番号に応じてHardwareSerialを割り当て
         switch (port) {
-            case 0: serial = &Serial; break;
-            case 1: serial = &Serial1; break;
-            case 2: serial = &Serial2; break;
-            default: break;
+            case 0:
+                serial = &Serial;
+                break;
+            case 1:
+                serial = &Serial1;
+                break;
+            case 2:
+                serial = &Serial2;
+                break;
+            default:
+                break;
         }
     }
 };
@@ -41,15 +46,17 @@ static SerialImpl impl_port2(2);
 // ポート番号から実装を取得
 SerialImpl& get_impl(uint8_t port) {
     switch (port) {
-        case 1: return impl_port1;
-        case 2: return impl_port2;
-        default: return impl_port0;
+        case 1:
+            return impl_port1;
+        case 2:
+            return impl_port2;
+        default:
+            return impl_port0;
     }
 }
-}  // namespace
+} // namespace
 
-M5StackSerialContext::M5StackSerialContext(uint8_t port)
-    : port_(port) {
+M5StackSerialContext::M5StackSerialContext(uint8_t port) : port_(port) {
     // 実装は静的変数なので、特に何もしない
 }
 
@@ -115,6 +122,6 @@ bool M5StackSerialContext::connect() {
     return true;
 }
 
-}  // namespace m5stack
-}  // namespace platform
-}  // namespace omusubi
+} // namespace m5stack
+} // namespace platform
+} // namespace omusubi

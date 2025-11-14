@@ -1,9 +1,11 @@
 #include "omusubi/platform/m5stack/m5stack_ble_context.hpp"
+
+#include <BLEAdvertisedDevice.h>
 #include <BLEDevice.h>
 #include <BLEScan.h>
-#include <BLEAdvertisedDevice.h>
-#include <new>  // placement new用
+
 #include <cstring>
+#include <new> // placement new用
 
 namespace omusubi {
 namespace platform {
@@ -27,16 +29,12 @@ struct BLEImpl {
         char address[32];
         int32_t rssi;
     };
+
     FoundDevice found_devices[10];
     uint8_t found_count;
     bool scanning;
 
-    BLEImpl()
-        : initialized(false)
-        , connected(false)
-        , scan(nullptr)
-        , found_count(0)
-        , scanning(false) {
+    BLEImpl() : initialized(false), connected(false), scan(nullptr), found_count(0), scanning(false) {
         strncpy(local_name, "M5Stack-BLE", sizeof(local_name));
         local_name[sizeof(local_name) - 1] = '\0';
     }
@@ -44,7 +42,7 @@ struct BLEImpl {
 
 // 静的変数として実装を保持（シングルトン）
 static BLEImpl impl;
-}  // namespace
+} // namespace
 
 M5StackBLEContext::M5StackBLEContext() {
     // 実装は静的変数なので、特に何もしない
@@ -61,7 +59,6 @@ M5StackBLEContext::~M5StackBLEContext() {
 // ========================================
 
 bool M5StackBLEContext::connect() {
-    
     if (!impl.initialized) {
         // BLEデバイスの初期化
         BLEDevice::init(impl.local_name);
@@ -81,7 +78,6 @@ bool M5StackBLEContext::connect() {
 // ========================================
 
 uint8_t M5StackBLEContext::scan() {
-    
     if (!impl.initialized || impl.scanning) {
         return impl.found_count;
     }
@@ -101,17 +97,14 @@ uint8_t M5StackBLEContext::scan() {
 
         // デバイス名
         if (device.haveName()) {
-            strncpy(impl.found_devices[i].name, device.getName().c_str(),
-                   sizeof(impl.found_devices[i].name) - 1);
+            strncpy(impl.found_devices[i].name, device.getName().c_str(), sizeof(impl.found_devices[i].name) - 1);
         } else {
-            strncpy(impl.found_devices[i].name, "Unknown",
-                   sizeof(impl.found_devices[i].name) - 1);
+            strncpy(impl.found_devices[i].name, "Unknown", sizeof(impl.found_devices[i].name) - 1);
         }
         impl.found_devices[i].name[sizeof(impl.found_devices[i].name) - 1] = '\0';
 
         // MACアドレス
-        strncpy(impl.found_devices[i].address, device.getAddress().toString().c_str(),
-               sizeof(impl.found_devices[i].address) - 1);
+        strncpy(impl.found_devices[i].address, device.getAddress().toString().c_str(), sizeof(impl.found_devices[i].address) - 1);
         impl.found_devices[i].address[sizeof(impl.found_devices[i].address) - 1] = '\0';
 
         // RSSI
@@ -124,6 +117,6 @@ uint8_t M5StackBLEContext::scan() {
     return impl.found_count;
 }
 
-}  // namespace m5stack
-}  // namespace platform
-}  // namespace omusubi
+} // namespace m5stack
+} // namespace platform
+} // namespace omusubi

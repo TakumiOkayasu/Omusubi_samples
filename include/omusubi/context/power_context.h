@@ -26,4 +26,4 @@ public:
     virtual bool is_charging() const = 0;
 };
 
-}  // namespace omusubi
+} // namespace omusubi

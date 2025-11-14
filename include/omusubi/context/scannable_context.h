@@ -29,4 +29,4 @@ public:
     virtual BLEContext* get_ble_context() const = 0;
 };
 
-}  // namespace omusubi
+} // namespace omusubi
