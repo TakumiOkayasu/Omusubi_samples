@@ -592,6 +592,38 @@ SerialImpl& get_impl(uint8_t port) {
 - Never use `new`, `delete`, `malloc`, `free`, `std::unique_ptr`, `std::shared_ptr`
 - Use static buffers with placement new when dynamic construction is needed
 
+**1.5. Abstraction Policy**
+
+**Operations (verbs) can be abstracted; Structures (data, task definitions) should NOT be abstracted.**
+
+- ✅ **Operations abstraction (Acceptable):** Abstract actions like `deploy`, `rollback`, `connect`, `disconnect`, `write`, `read` through interfaces
+  ```cpp
+  // ✅ Good - Operation abstraction
+  class Writable {
+      virtual size_t write(span<const uint8_t> data) = 0;
+  };
+  ```
+
+- ❌ **Structure abstraction (High cost, leaky):** Attempting to abstract data structures or task definitions inevitably leads to abstraction leakage
+  ```cpp
+  // ❌ Bad - Data structure abstraction causes leakage
+  class Container {
+      virtual void* get_data() = 0;  // Forces concrete details to leak
+      virtual size_t get_capacity() = 0;
+  };
+
+  // ❌ Bad - Task definition abstraction
+  class TaskConfig {
+      virtual void set_parameter(const char* key, const char* value) = 0;
+      // Concrete task requirements will leak through
+  };
+  ```
+
+**Rationale:**
+- Operations have well-defined contracts that remain stable
+- Data structures and task definitions have concrete requirements that leak through any abstraction layer
+- Concrete types (like `FixedString<N>`, `Vector3`) avoid abstraction overhead and leakage
+
 **2. Context Getters: Two Access Patterns**
 
 The Context layer functions as a DI container and supports two access patterns:
