@@ -1,131 +1,158 @@
 # Code Quality Tools
 
-This document provides detailed information about the code quality tools used in the Omusubi project.
+このドキュメントでは、Omusubiプロジェクトで使用するコード品質ツールの詳細を説明します。
 
 ## Overview
 
-The Omusubi project uses two primary code quality tools:
+Omusubiプロジェクトでは以下のコード品質ツールを使用しています：
 
-1. **clang-format** - Automatic code formatter
-2. **clang-tidy** - Static analyzer and linter
+1. **clang-format** - 自動コードフォーマッター
+2. **clang-tidy** - 静的解析とLinter
+3. **clangd** - VS Code言語サーバー（リアルタイム診断）
 
-Both tools are integrated into the VS Code Dev Container environment and work automatically as you code.
+これらのツールはDev Container環境に統合されており、自動的に動作します。
+
+## Two-Tier Formatting System
+
+Omusubiでは2段階のフォーマット構成を採用しています：
+
+### 1. Save-time Formatting (VS Code)
+ファイル保存時にclangdが自動的にclang-formatを実行
+- 即座にフォーマット適用
+- 開発体験の向上
+
+### 2. Commit-time Formatting (pre-commit hook)
+ステージされたファイルに対してフォーマット+Lintを実行
+- 最終的な品質保証
+- エラーがあればコミットをブロック
 
 ## clang-format (Formatter)
 
 ### What it does
 
-clang-format automatically formats your C++ code according to predefined style rules, ensuring consistency across the entire codebase. This project focuses exclusively on C++ (no C code).
+clang-formatは定義されたスタイルルールに従ってC++コードを自動的にフォーマットし、コードベース全体の一貫性を保証します。このプロジェクトはC++のみを対象としています（Cコードは対象外）。
 
 ### Configuration
 
-The configuration is stored in `.clang-format` at the project root.
+設定は`.clang-format`ファイルに記述されています。
 
-**Key settings:**
+**主要な設定:**
 
-| Setting | Value | Description |
+| 設定 | 値 | 説明 |
 |---------|-------|-------------|
-| `BasedOnStyle` | LLVM | Base style template |
-| `IndentWidth` | 4 | Number of spaces for indentation |
-| `ColumnLimit` | 100 | Maximum line length |
-| `PointerAlignment` | Left | `int* ptr` instead of `int *ptr` |
-| `BreakBeforeBraces` | Attach | Opening brace on same line |
+| `BasedOnStyle` | LLVM | ベーススタイル |
+| `IndentWidth` | 4 | インデントのスペース数 |
+| `ColumnLimit` | 180 | 最大行長 |
+| `PointerAlignment` | Left | `int* ptr` (not `int *ptr`) |
+| `RemoveBracesLLVM` | false | 中括弧の省略を禁止 |
+| `AlwaysBreakTemplateDeclarations` | Yes | `template<>`の後ろは改行 |
+| `SpaceBeforeCpp11BracedList` | true | 初期化子の`{}`の前にスペース |
+| `InsertNewlineAtEOF` | true | ファイル末尾に改行を挿入 |
+
+**手動ルール（clang-formatでは自動化できない）:**
+- if/for/while文の開き中括弧の前の行には空行を入れる
+- 閉じ中括弧の後ろが閉じ中括弧でなければ空行を入れる
+- return文の前に空行を入れる（ただしifブロックなどの中では無視）
 
 ### Usage
 
-**Automatic (recommended):**
-- Formatting happens automatically when you save a C++ file in VS Code
-- Controlled by your global VS Code settings (formatOnSave: true)
+**自動フォーマット（推奨）:**
+- VS Codeでファイル保存時に自動実行
+- `.vscode/settings.json`で設定済み
 
-**Manual:**
+**手動フォーマット:**
 ```bash
-# Format a single file
+# スクリプトを使用（推奨）
+./scripts/format.sh
+
+# 単一ファイルをフォーマット
 clang-format -i src/main.cpp
 
-# Format all C++ files
+# すべてのC++ファイルをフォーマット
 find include src -name "*.h" -o -name "*.hpp" -o -name "*.cpp" | xargs clang-format -i
 
-# Check formatting without modifying files
-clang-format --dry-run --Werror src/main.cpp
+# フォーマットチェック（ファイルを変更しない）
+./scripts/check-format.sh
 ```
 
-**VS Code shortcuts:**
+**VS Codeショートカット:**
 - `Shift + Alt + F` (Linux/Windows)
 - `Shift + Option + F` (Mac)
 
-### Include ordering
+### Include Ordering
 
-The formatter automatically organizes `#include` directives in this order:
+フォーマッターは`#include`ディレクティブを以下の順序で自動整理します：
 
-1. Project headers (`"omusubi/..."`)
-2. System C headers (if needed, e.g., `<stdint.h>`)
-3. C++ standard library (`<cstdint>`, `<string>`, etc.)
-4. Other headers
+1. プロジェクトヘッダー (`"omusubi/..."`)
+2. システムヘッダー (`<*.h>`)
+3. C++標準ライブラリ (`<cstdint>`, `<string>`, etc.)
+4. その他のヘッダー
 
-Example:
+例:
 ```cpp
+#include "omusubi/core/string_view.h"
 #include "omusubi/system_context.h"
-#include "omusubi/string_view.h"
 
 #include <cstdint>
-
-#include <string>
-#include <vector>
+#include <cstddef>
 ```
 
-**Note:** Prefer C++ headers (`<cstdint>`, `<cstdio>`) over C headers (`<stdint.h>`, `<stdio.h>`) when possible.
+**注意:** C++ヘッダー (`<cstdint>`, `<cstdio>`) を優先し、Cヘッダー (`<stdint.h>`, `<stdio.h>`) は避けてください。
 
 ## clang-tidy (Linter)
 
 ### What it does
 
-clang-tidy performs static analysis on your code to:
-- Detect potential bugs
-- Suggest performance improvements
-- Enforce coding standards
-- Recommend modern C++ idioms
-- Check naming conventions
+clang-tidyはコードの静的解析を行い、以下を検出します：
+- 潜在的なバグ
+- パフォーマンスの問題
+- コーディング標準違反
+- モダンC++イディオムの推奨
+- 命名規則のチェック
 
 ### Configuration
 
-The configuration is stored in `.clang-tidy` at the project root.
+設定は`.clang-tidy`ファイルに記述されています。
 
-**Check categories enabled:**
+**有効なチェックカテゴリ:**
 
-| Category | Purpose | Example Checks |
+| カテゴリ | 目的 | 例 |
 |----------|---------|----------------|
-| `bugprone-*` | Detect common bugs | Use-after-move, infinite loops |
-| `cert-*` | Security guidelines | CERT secure coding standards |
-| `cppcoreguidelines-*` | Best practices | C++ Core Guidelines compliance |
-| `performance-*` | Optimization | Unnecessary copies, move semantics |
-| `readability-*` | Code clarity | Naming, complexity, magic numbers |
-| `modernize-*` | C++14 idioms | Use `nullptr`, `auto`, etc. |
+| `bugprone-*` | バグ検出 | Use-after-move, 無限ループ |
+| `cert-*` | セキュリティ | CERT安全コーディング標準 |
+| `cppcoreguidelines-*` | ベストプラクティス | C++ Core Guidelines準拠 |
+| `performance-*` | 最適化 | 不要なコピー、ムーブセマンティクス |
+| `readability-*` | 可読性 | 命名、複雑度、マジックナンバー |
+| `modernize-*` | C++14イディオム | `nullptr`, `auto`の使用など |
 
-### Naming conventions
+### Naming Conventions
 
-clang-tidy enforces the Omusubi naming conventions:
+clang-tidyはOmusubiの命名規則を強制します：
 
 ```cpp
-// Classes and Structs: CamelCase
+// クラスと構造体: PascalCase
 class SystemContext { };
 struct Vector3 { };
 
-// Functions and variables: snake_case
+// 関数と変数: snake_case
 void initialize_device();
 int sensor_value = 0;
 
-// Constants and Enums: UPPER_CASE
-const int MAX_BUFFER_SIZE = 256;
-enum PowerState { ACTIVE, SLEEP };
+// 定数とEnum値: UPPER_CASE
+constexpr int MAX_BUFFER_SIZE = 256;
+enum class PowerState : uint8_t {
+    ACTIVE,
+    SLEEP
+};
 
-// Private members: snake_case_ (trailing underscore)
+// プライベートメンバー: snake_case_ (末尾アンダースコア)
 class Device {
 private:
     int port_;
     bool enabled_;
 };
 
-// Namespaces: snake_case
+// 名前空間: snake_case
 namespace omusubi {
 namespace platform {
 namespace m5stack {
@@ -136,153 +163,200 @@ namespace m5stack {
 
 ### Usage
 
-**Automatic (recommended):**
-- clang-tidy runs automatically through the clangd language server
-- Warnings appear as squiggly lines in VS Code
-- Hover over warnings to see details and suggested fixes
+**自動Lint（推奨）:**
+- clangd言語サーバー経由で自動実行
+- VS Codeで波線として警告が表示される
+- 警告をホバーして詳細を確認
 
-**Manual:**
+**手動Lint:**
 ```bash
-# Lint a single file
+# スクリプトを使用（推奨）
+./scripts/lint.sh
+
+# 単一ファイルをLint
 clang-tidy src/main.cpp -- -Iinclude -std=c++14
 
-# Lint all source files
+# すべてのソースファイルをLint
 find src -name "*.cpp" -exec clang-tidy {} -- -Iinclude -std=c++14 \;
 
-# Apply automatic fixes (use with caution)
+# 自動修正（注意して使用）
 clang-tidy -fix src/main.cpp -- -Iinclude -std=c++14
 ```
 
-### Suppressing warnings
+### Suppressing Warnings
 
-Sometimes you need to suppress specific warnings. Use these annotations sparingly:
+特定の警告を抑制する必要がある場合は、以下のアノテーションを使用します（慎重に使用）：
 
 ```cpp
-// Suppress warning for the next line only
+// 次の行のみ警告を抑制
 // NOLINTNEXTLINE(check-name)
 void* ptr = reinterpret_cast<void*>(address);
 
-// Suppress warning for a single line
+// 1行のみ警告を抑制
 int result = legacy_function(); // NOLINT
 
-// Suppress specific check for next line
+// 特定のチェックを抑制
 // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
 auto* hardware = reinterpret_cast<HardwareRegister*>(0x40000000);
 ```
 
-**When to suppress warnings:**
-- Platform-specific hardware access (e.g., memory-mapped registers)
-- Interaction with C libraries
-- Performance-critical code where the check is not applicable
-- Edge cases where the check produces false positives
+**警告を抑制すべき場合:**
+- プラットフォーム固有のハードウェアアクセス（メモリマップドレジスタ等）
+- Cライブラリとのインタラクション
+- パフォーマンスクリティカルなコードでチェックが適用不可能
+- 誤検知のエッジケース
 
-**Always include a comment explaining why:**
+**常に理由をコメントで説明:**
 ```cpp
-// Hardware register access requires reinterpret_cast
+// ハードウェアレジスタアクセスにはreinterpret_castが必要
 // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
 auto* reg = reinterpret_cast<volatile uint32_t*>(0x40000000);
 ```
 
-## Embedded-specific checks
+## Embedded-specific Checks
 
-The configuration includes special considerations for embedded development:
+組み込み開発向けの特別な考慮事項があります。
 
-### Disabled checks for embedded
+### Disabled Checks for Embedded
 
-Some checks are disabled because they conflict with embedded constraints:
+組み込み制約と衝突するため、一部のチェックを無効化しています：
 
-| Check | Why Disabled |
+| チェック | 無効化理由 |
 |-------|--------------|
-| `cppcoreguidelines-owning-memory` | We use stack allocation, not heap |
-| `cppcoreguidelines-pro-bounds-pointer-arithmetic` | Needed for low-level hardware access |
-| `cppcoreguidelines-avoid-magic-numbers` | Hardware registers use magic numbers |
-| `modernize-avoid-c-arrays` | C arrays are acceptable in embedded |
+| `cppcoreguidelines-owning-memory` | ヒープではなくスタック割り当てを使用 |
+| `cppcoreguidelines-pro-bounds-pointer-arithmetic` | 低レベルハードウェアアクセスに必要 |
+| `cppcoreguidelines-avoid-magic-numbers` | ハードウェアレジスタはマジックナンバーを使用 |
+| `modernize-avoid-c-arrays` | 組み込みではC配列が許容される |
 
-### Custom thresholds
+### Custom Thresholds
 
-| Setting | Value | Reason |
+| 設定 | 値 | 理由 |
 |---------|-------|--------|
-| Function line count | 100 | Embedded functions tend to be longer |
-| Function statement count | 50 | Hardware initialization is complex |
+| 関数行数 | 100 | 組み込み関数は長くなる傾向 |
+| 関数ステートメント数 | 50 | ハードウェア初期化は複雑 |
 
-## Integration with Git workflow
+## Scripts
 
-### Pre-commit checklist
+### format.sh
 
-Before committing code:
+すべてのC++ファイルを自動的にフォーマットします：
 
-1. **Format check:** All files should be formatted
-   ```bash
-   find include src -name "*.cpp" -o -name "*.h" -o -name "*.hpp" | \
-     xargs clang-format --dry-run --Werror
-   ```
+```bash
+./scripts/format.sh
+```
 
-2. **Lint check:** No critical warnings
-   ```bash
-   find src -name "*.cpp" -exec clang-tidy {} -- -Iinclude -std=c++14 \;
-   ```
+### lint.sh
 
-3. **Build check:** Code compiles without errors
-   ```bash
-   make clean && make
-   ```
+コードの問題をチェックします：
 
-### CI/CD Integration (future)
+```bash
+./scripts/lint.sh
+```
 
-In the future, these checks will run automatically on:
-- Pull requests
-- Pre-push hooks
-- CI/CD pipelines
+エラーがある場合は終了コード1で終了します。
+
+### check-format.sh
+
+フォーマットが正しいかチェックします（修正はしません）：
+
+```bash
+./scripts/check-format.sh
+```
+
+CI/CD用のスクリプトです。
+
+## Git Commit Workflow
+
+### Pre-commit Hook
+
+コミット時に自動的に以下が実行されます：
+
+1. ステージされたC++ファイルを自動フォーマット（clang-format）
+2. Lintチェック（clang-tidy）
+3. エラーがあればコミットをブロック
+
+**フロー:**
+```
+ファイル編集 → 保存（自動フォーマット） → git add → git commit（フォーマット+Lint） → git push（CI/CD）
+```
+
+### Bypass Method
+
+緊急時にチェックをスキップする場合：
+
+```bash
+git commit --no-verify
+```
+
+⚠️ 推奨されません。CI/CDで品質チェックが失敗します。
+
+## CI/CD Pipeline
+
+GitHub Actionsが自動的に以下をチェックします：
+
+- ✅ フォーマットチェック
+- ✅ Lintチェック
+- ✅ ビルドテスト
+
+プッシュ前に以下を実行することを推奨：
+
+```bash
+# フォーマット適用
+./scripts/format.sh
+
+# Lintチェック
+./scripts/lint.sh
+
+# ステージング
+git add .
+
+# コミット（自動チェック実行）
+git commit -m "your message"
+```
 
 ## Troubleshooting
 
-### clang-format not working
+### clang-formatが動作しない
 
-1. Check that the extension is installed:
-   - Open Extensions panel (`Ctrl+Shift+X`)
-   - Search for "Clang-Format"
-   - Verify "xaver.clang-format" is installed
+1. clangd拡張機能がインストールされているか確認：
+   - 拡張機能パネルを開く (`Ctrl+Shift+X`)
+   - "clangd"を検索
+   - `llvm-vs-code-extensions.vscode-clangd`がインストールされているか確認
 
-2. Check VS Code settings:
-   - `Ctrl+,` to open settings
-   - Search for "format on save"
-   - Ensure it's enabled
+2. VS Code設定を確認：
+   - `Ctrl+,`で設定を開く
+   - "format on save"を検索
+   - 有効になっているか確認
 
-3. Verify clang-format is in PATH:
+3. clang-formatがPATHにあるか確認：
    ```bash
    which clang-format
-   # Should output: /usr/bin/clang-format
+   # 出力: /usr/bin/clang-format
    ```
 
-### clang-tidy not showing warnings
+### clang-tidyが警告を表示しない
 
-1. Check clangd is running:
-   - Look for "clangd" in the status bar
-   - If not, reload the window (`Ctrl+Shift+P` → "Reload Window")
+1. clangdが動作しているか確認：
+   - ステータスバーに"clangd"が表示されているか確認
+   - 表示されていない場合、ウィンドウをリロード (`Ctrl+Shift+P` → "Reload Window")
 
-2. Check that `compile_commands.json` exists:
-   ```bash
-   # Generate it if missing
-   bear -- make
-   ```
-
-3. Check clangd output:
+2. clangd出力を確認：
    - `Ctrl+Shift+P` → "Output"
-   - Select "Clangd" from dropdown
+   - ドロップダウンから"Clangd"を選択
 
-### False positives
+### False Positives
 
-If you consistently get false positives for a specific check:
+特定のチェックで一貫して誤検知が発生する場合：
 
-1. Document the issue
-2. Add it to `.clang-tidy` disabled checks
-3. Comment why it's disabled
+1. 問題を文書化
+2. `.clang-tidy`の無効化チェックに追加
+3. 無効化理由をコメント
 
-Example:
+例:
 ```yaml
 Checks: >
   ...,
-  -bugprone-suspicious-check,  # False positives with hardware registers
+  -bugprone-suspicious-check,  # ハードウェアレジスタで誤検知
   ...
 ```
 
@@ -290,5 +364,5 @@ Checks: >
 
 - [clang-format documentation](https://clang.llvm.org/docs/ClangFormat.html)
 - [clang-tidy documentation](https://clang.llvm.org/extra/clang-tidy/)
-- [C++ Core Guidelines](https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines)
+- [C++ Core Guidelines](https://isocpp.github.io/CppCoreGuidelines/CppCoreGuideries)
 - [CERT C++ Coding Standard](https://wiki.sei.cmu.edu/confluence/pages/viewpage.action?pageId=88046682)
