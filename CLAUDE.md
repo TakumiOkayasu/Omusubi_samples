@@ -13,6 +13,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **English responses to the user are not acceptable. This is a strict requirement.**
 
+## CRITICAL: Git Commit/Push Policy
+
+**NEVER execute `git commit` or `git push` commands. The user handles all git operations.**
+
+- ❌ **PROHIBITED:** `git commit`, `git push`, `git commit --amend`, `git push --force`
+- ✅ **ALLOWED:** `git add`, `git rm`, `git mv`, `git status`, `git diff`, `git log`
+- When code changes are complete, inform the user that changes are ready to commit
+- The user will review and commit changes themselves
+- Do NOT create commit messages in git commands (only provide suggested commit messages as text)
+
+**This is a strict requirement. Violating this rule disrupts the user's workflow.**
+
 ## Response Quality Standards
 
 **When answering questions or addressing uncertainties:**
