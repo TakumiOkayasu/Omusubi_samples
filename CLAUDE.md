@@ -13,6 +13,37 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **English responses to the user are not acceptable. This is a strict requirement.**
 
+## Response Quality Standards
+
+**When answering questions or addressing uncertainties:**
+
+- **Think deeply before responding** - Consider the question from at least 3 different angles
+- **Verify technical accuracy** - Cross-check against documentation, code, and established patterns
+- **Provide comparative analysis** - If multiple approaches exist, explain trade-offs
+- **Use concrete examples** - Abstract explanations should be accompanied by code examples
+- **Cite evidence** - Reference specific files, line numbers, or documentation when making claims
+
+**Thought process should cover:**
+1. **Literal interpretation** - What is the user explicitly asking?
+2. **Underlying intent** - What problem are they trying to solve?
+3. **Contextual factors** - How does this relate to the project's architecture and constraints?
+
+**Example:**
+```
+User: "Should I use size_t or uint32_t for loop counters?"
+
+Thought 1: Literal - User wants to know which type to use
+Thought 2: Intent - They likely care about consistency, performance, or platform compatibility
+Thought 3: Context - This project uses uint32_t for fixed containers due to embedded system constraints
+
+Response: このプロジェクトではループカウンタに uint32_t を使用してください。理由は...
+```
+
+**This ensures responses are:**
+- Accurate and well-reasoned
+- Aligned with project conventions
+- Helpful for understanding the "why" behind decisions
+
 ## Project Overview
 
 Omusubi is a lightweight, type-safe C++14 framework for embedded devices (primarily M5Stack). It provides a clean architecture centered around `SystemContext` for unified hardware access, with complete interface/implementation separation for hardware-independent code.
@@ -841,18 +872,36 @@ public:
     - Type clarity is critical for readability (e.g., numeric literals: `uint32_t count = 0;`)
     - Interfacing with C APIs or hardware registers
     - Explicit type conversion is needed for correctness
+  - **Numeric literals:** Use explicit types for bit width/signedness clarity in embedded systems
+    ```cpp
+    // ✅ Preferred: explicit type for numeric literals
+    uint32_t retry_count = 0;    // Clear bit width and signedness
+    uint8_t port_number = 1;     // Clear 8-bit unsigned
+
+    // ⚠️ Alternative: auto with suffix/initialization (use with caution)
+    auto retry_count = 0U;           // unsigned int (platform-dependent size)
+    auto retry_count = uint32_t{0};  // uint32_t (explicit)
+
+    // ✗ Avoid: auto without suffix
+    auto retry_count = 0;  // int (wrong type - signed, platform-dependent)
+    ```
   - Examples:
     ```cpp
-    // ✅ Preferred: auto
+    // ✅ Preferred: auto for function returns
     auto str = static_string("Hello");
     auto view = str.view();
     auto ctx = get_system_context();
 
-    // ✅ Acceptable: explicit type when clarity is needed
+    // ✅ Explicit type for numeric literals
     uint32_t retry_count = 0;
-    const char* device_name = "M5Stack";
 
-    // ✗ Avoid: unnecessary explicit types
+    // ✅ auto for literals when type is obvious
+    auto device_name = "M5Stack";  // const char* (string literal)
+    auto is_enabled = true;        // bool
+    auto separator = ',';          // char
+    auto pi = 3.14159f;            // float (with suffix)
+
+    // ✗ Avoid: unnecessary explicit types for function returns
     StaticString<5> str = static_string("Hello");  // auto is better
     StringView view = str.view();                  // auto is better
     ```

@@ -117,17 +117,172 @@ auto concatenated = str + static_string(" World");
 
 ### ✅ **数値リテラルの初期化**
 
+**方法1: 明示的な型（従来の方法）**
+
 ```cpp
 // ✅ Explicit type for clarity
 uint32_t retry_count = 0;
 uint8_t port_number = 1;
 int32_t temperature = -10;
-
-// ✗ auto would deduce 'int', which may not be what you want
-auto retry_count = 0;  // int, not uint32_t
 ```
 
-**理由:** 数値リテラルは`int`と推論されるため、意図したサイズ/符号と異なる可能性がある
+**方法2: サフィックスを使った型推論（C++推奨）**
+
+```cpp
+// ✅ Type deduction with suffixes (Modern C++)
+auto retry_count = 0U;        // unsigned int
+auto retry_count = 0UL;       // unsigned long
+auto retry_count = uint32_t{0};  // uint32_t (uniform initialization)
+
+auto port_number = uint8_t{1};
+auto temperature = -10;       // int (signed by default)
+```
+
+**⚠️ 注意: サフィックスなしの`auto`**
+
+```cpp
+// ✗ Problem: auto deduces 'int'
+auto retry_count = 0;  // int (32ビット符号付き)
+                       // 意図: uint32_t (32ビット符号なし)
+```
+
+**なぜ問題か:**
+- 数値リテラル`0`は`int`型
+- `int`は符号付き（-2,147,483,648 ～ 2,147,483,647）
+- `uint32_t`は符号なし（0 ～ 4,294,967,295）
+- 意図しない型になる可能性
+
+**推奨される方法:**
+
+| 意図する型 | 明示的な型 | サフィックス/初期化 |
+|-----------|-----------|-------------------|
+| `uint32_t` | `uint32_t count = 0;` | `auto count = 0U;` or `auto count = uint32_t{0};` |
+| `uint8_t` | `uint8_t port = 1;` | `auto port = uint8_t{1};` |
+| `int32_t` | `int32_t temp = -10;` | `auto temp = int32_t{-10};` or `auto temp = -10;` |
+| `size_t` | `size_t size = 0;` | `auto size = size_t{0};` or `auto size = 0UL;` |
+
+**どちらを使うべきか:**
+
+```cpp
+// 組み込みシステムでは明示的な型を推奨
+uint32_t retry_count = 0;     // ← サイズが明確
+uint8_t port_number = 1;      // ← サイズが明確
+
+// 一般的なC++ではサフィックスも可
+auto retry_count = 0U;        // ← 冗長性が低い
+auto port_number = uint8_t{1};  // ← 型が明確
+```
+
+**Omusubiの推奨:**
+- **明示的な型を使う**（特に組み込みシステム）
+- サイズと符号が一目で分かる
+- ハードウェアレジスタやメモリマップドI/Oで重要
+
+**理由:**
+- 組み込みシステムではビット幅が重要
+- `uint32_t`と`int`の違いがバグの原因になりうる
+- 明示的な型の方が意図が明確
+
+### ✅ **リテラルで型が自明な場合 - `auto`推奨**
+
+#### 1. **文字列リテラル**
+
+```cpp
+// ✅ auto deduces const char*
+auto device_name = "M5Stack";     // const char*
+auto message = "Hello World";     // const char*
+
+// ✅ Explicit type (equivalent, but verbose)
+const char* device_name = "M5Stack";
+```
+
+**理由:** 文字列リテラルは`const char*`と推論されるため、`auto`で意図が明確。
+
+**配列との違い:**
+
+```cpp
+// String literal → pointer
+auto str1 = "Hello";              // const char* (pointer)
+decltype(auto) str2 = "Hello";    // const char(&)[6] (array reference)
+
+// Array decay
+char arr[] = "Hello";
+auto ptr = arr;                   // char* (pointer)
+auto& ref = arr;                  // char(&)[6] (array reference)
+```
+
+#### 2. **bool リテラル**
+
+```cpp
+// ✅ auto for bool (type is obvious)
+auto is_enabled = true;           // bool
+auto is_connected = false;        // bool
+auto has_data = some_function();  // bool (if function returns bool)
+
+// ⚠️ Explicit type (verbose, but acceptable)
+bool is_enabled = true;
+```
+
+**理由:** `true`/`false`は明らかに`bool`なので、`auto`で十分。
+
+**注意:** 条件式は明示的な方が良い場合も
+
+```cpp
+// ✅ auto is fine
+auto result = (x > 0);            // bool
+
+// ✅ Explicit type for clarity in complex conditions
+bool is_valid = (x > 0 && y < 10 && z != 0);  // 複雑な条件式は明示的に
+```
+
+#### 3. **文字リテラル**
+
+```cpp
+// ✅ auto for char literals
+auto separator = ',';             // char
+auto newline = '\n';              // char
+auto tab = '\t';                  // char
+
+// ⚠️ Explicit type (acceptable for special chars)
+char null_char = '\0';            // null終端の意図を強調
+```
+
+**理由:** 文字リテラルは`char`と推論されるので`auto`で問題なし。
+
+#### 4. **浮動小数点リテラルにはサフィックス必須**
+
+```cpp
+// ✅ auto with suffix
+auto pi = 3.14159f;               // float
+auto epsilon = 1e-6;              // double
+auto large = 1e10L;               // long double
+
+// ⚠️ Without suffix, defaults to double
+auto value = 3.14;                // double (not float!)
+
+// ✅ Explicit type when precision matters
+float sensor_value = 0.0f;        // 明示的にfloat
+double calculation = 0.0;         // 明示的にdouble
+```
+
+**理由:**
+- サフィックスがあれば型が明確
+- 組み込みシステムでは`float`/`double`の違いが重要な場合は明示推奨
+
+#### 5. **nullptr**
+
+```cpp
+// ✅ auto for nullptr
+auto ptr = nullptr;               // std::nullptr_t
+
+// ✅ Explicit type for pointer variables
+SerialContext* serial = nullptr;  // 型が重要
+uint8_t* buffer = nullptr;        // 型が重要
+```
+
+**理由:**
+- `nullptr`自体は型が自明
+- ただし、ポインタ変数は明示的な型の方が意図が明確
 
 ### ✅ **C APIや低レベルハードウェアとのインターフェース**
 
@@ -135,11 +290,17 @@ auto retry_count = 0;  // int, not uint32_t
 // ✅ Explicit type for hardware registers
 volatile uint32_t* const GPIO_BASE = reinterpret_cast<volatile uint32_t*>(0x40020000);
 
-// ✅ Explicit type for C API
-const char* device_name = get_device_name_c_api();
+// ✅ auto is fine for C API string returns
+auto device_name = get_device_name_c_api();  // const char*
+
+// ✅ Explicit type when pointer type matters
+uint8_t* buffer = get_buffer();  // uint8_t* (not auto)
 ```
 
-**理由:** ハードウェアやC APIとのインターフェースでは、型の正確性が重要
+**理由:**
+- 文字列は`auto`で`const char*`と推論されるので問題なし
+- ハードウェアレジスタは明示的な型が必要（volatile, const修飾）
+- バッファポインタは型によってアライメントが変わるため明示推奨
 
 ### ✅ **明示的な型変換が必要**
 
@@ -297,11 +458,13 @@ auto result = perform_operation();  // What type is this?
 - ラムダ式
 - テンプレート戻り値
 - コンパイル時計算
+- **文字列リテラル** (`const char*`と推論される)
 
 ### ✅ 明示的な型を使う（例外）
 
 - 数値リテラルの初期化（`uint32_t count = 0;`）
-- C APIやハードウェアインターフェース
+- ハードウェアレジスタ（`volatile`修飾が必要）
+- バッファポインタ（型によるアライメントが重要）
 - 明示的な型変換
 - エラーコードや列挙型
 - インターフェース実装
