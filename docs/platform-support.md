@@ -1,4 +1,4 @@
-# Platform Support
+# プラットフォームサポート
 
 このドキュメントでは、Omusubiがサポートするプラットフォームと、各プラットフォーム固有の情報を提供します。
 
@@ -347,5 +347,5 @@ target_link_libraries(omusubi_pico pico_stdlib)
 
 ---
 
-**Version:** 1.0.0
+**Version:** 1.0.1
 **Last Updated:** 2025-11-16

@@ -1,8 +1,8 @@
-# Code Quality Tools
+# コード品質ツール
 
 このドキュメントでは、Omusubiプロジェクトで使用するコード品質ツールの詳細を説明します。
 
-## Overview
+## 概要
 
 Omusubiプロジェクトでは以下のコード品質ツールを使用しています：
 
@@ -12,27 +12,27 @@ Omusubiプロジェクトでは以下のコード品質ツールを使用して�
 
 これらのツールはDev Container環境に統合されており、自動的に動作します。
 
-## Two-Tier Formatting System
+## 2段階フォーマットシステム
 
 Omusubiでは2段階のフォーマット構成を採用しています：
 
-### 1. Save-time Formatting (VS Code)
+### 1. 保存時フォーマット（VS Code）
 ファイル保存時にclangdが自動的にclang-formatを実行
 - 即座にフォーマット適用
 - 開発体験の向上
 
-### 2. Commit-time Formatting (pre-commit hook)
+### 2. コミット時フォーマット（pre-commit hook）
 ステージされたファイルに対してフォーマット+Lintを実行
 - 最終的な品質保証
 - エラーがあればコミットをブロック
 
-## clang-format (Formatter)
+## clang-format（フォーマッター）
 
-### What it does
+### 機能
 
 clang-formatは定義されたスタイルルールに従ってC++コードを自動的にフォーマットし、コードベース全体の一貫性を保証します。このプロジェクトはC++のみを対象としています（Cコードは対象外）。
 
-### Configuration
+### 設定
 
 設定は`.clang-format`ファイルに記述されています。
 
@@ -54,7 +54,7 @@ clang-formatは定義されたスタイルルールに従ってC++コードを�
 - 閉じ中括弧の後ろが閉じ中括弧でなければ空行を入れる
 - return文の前に空行を入れる（ただしifブロックなどの中では無視）
 
-### Usage
+### 使用方法
 
 **自動フォーマット（推奨）:**
 - VS Codeでファイル保存時に自動実行
@@ -79,7 +79,7 @@ find include src -name "*.h" -o -name "*.hpp" -o -name "*.cpp" | xargs clang-for
 - `Shift + Alt + F` (Linux/Windows)
 - `Shift + Option + F` (Mac)
 
-### Include Ordering
+### インクルード順序
 
 フォーマッターは`#include`ディレクティブを以下の順序で自動整理します：
 
@@ -99,9 +99,9 @@ find include src -name "*.h" -o -name "*.hpp" -o -name "*.cpp" | xargs clang-for
 
 **注意:** C++ヘッダー (`<cstdint>`, `<cstdio>`) を優先し、Cヘッダー (`<stdint.h>`, `<stdio.h>`) は避けてください。
 
-## clang-tidy (Linter)
+## clang-tidy（リンター）
 
-### What it does
+### 機能
 
 clang-tidyはコードの静的解析を行い、以下を検出します：
 - 潜在的なバグ
@@ -110,7 +110,7 @@ clang-tidyはコードの静的解析を行い、以下を検出します：
 - モダンC++イディオムの推奨
 - 命名規則のチェック
 
-### Configuration
+### 設定
 
 設定は`.clang-tidy`ファイルに記述されています。
 
@@ -125,7 +125,7 @@ clang-tidyはコードの静的解析を行い、以下を検出します：
 | `readability-*` | 可読性 | 命名、複雑度、マジックナンバー |
 | `modernize-*` | C++14イディオム | `nullptr`, `auto`の使用など |
 
-### Naming Conventions
+### 命名規則
 
 clang-tidyはOmusubiの命名規則を強制します：
 
@@ -161,7 +161,7 @@ namespace m5stack {
 }
 ```
 
-### Usage
+### 使用方法
 
 **自動Lint（推奨）:**
 - clangd言語サーバー経由で自動実行
@@ -183,7 +183,7 @@ find src -name "*.cpp" -exec clang-tidy {} -- -Iinclude -std=c++14 \;
 clang-tidy -fix src/main.cpp -- -Iinclude -std=c++14
 ```
 
-### Suppressing Warnings
+### 警告の抑制
 
 特定の警告を抑制する必要がある場合は、以下のアノテーションを使用します（慎重に使用）：
 
@@ -213,11 +213,11 @@ auto* hardware = reinterpret_cast<HardwareRegister*>(0x40000000);
 auto* reg = reinterpret_cast<volatile uint32_t*>(0x40000000);
 ```
 
-## Embedded-specific Checks
+## 組み込み向けチェック
 
 組み込み開発向けの特別な考慮事項があります。
 
-### Disabled Checks for Embedded
+### 組み込み向けに無効化されたチェック
 
 組み込み制約と衝突するため、一部のチェックを無効化しています：
 
@@ -228,14 +228,14 @@ auto* reg = reinterpret_cast<volatile uint32_t*>(0x40000000);
 | `cppcoreguidelines-avoid-magic-numbers` | ハードウェアレジスタはマジックナンバーを使用 |
 | `modernize-avoid-c-arrays` | 組み込みではC配列が許容される |
 
-### Custom Thresholds
+### カスタム閾値
 
 | 設定 | 値 | 理由 |
 |---------|-------|--------|
 | 関数行数 | 100 | 組み込み関数は長くなる傾向 |
 | 関数ステートメント数 | 50 | ハードウェア初期化は複雑 |
 
-## Scripts
+## スクリプト
 
 ### format.sh
 
@@ -265,7 +265,7 @@ auto* reg = reinterpret_cast<volatile uint32_t*>(0x40000000);
 
 CI/CD用のスクリプトです。
 
-## Git Commit Workflow
+## Gitコミットワークフロー
 
 ### Pre-commit Hook
 
@@ -280,7 +280,7 @@ CI/CD用のスクリプトです。
 ファイル編集 → 保存（自動フォーマット） → git add → git commit（フォーマット+Lint） → git push（CI/CD）
 ```
 
-### Bypass Method
+### バイパス方法
 
 緊急時にチェックをスキップする場合：
 
@@ -290,7 +290,7 @@ git commit --no-verify
 
 ⚠️ 推奨されません。CI/CDで品質チェックが失敗します。
 
-## CI/CD Pipeline
+## CI/CDパイプライン
 
 GitHub Actionsが自動的に以下をチェックします：
 
@@ -314,7 +314,7 @@ git add .
 git commit -m "your message"
 ```
 
-## Troubleshooting
+## トラブルシューティング
 
 ### clang-formatが動作しない
 
@@ -344,7 +344,7 @@ git commit -m "your message"
    - `Ctrl+Shift+P` → "Output"
    - ドロップダウンから"Clangd"を選択
 
-### False Positives
+### 誤検知
 
 特定のチェックで一貫して誤検知が発生する場合：
 
@@ -366,7 +366,7 @@ Checks: >
 - [C++14互換性ガイド](cpp14_compatibility.md) - C++14準拠チェック
 - CLAUDE.md - 命名規則とコーディング規約
 
-## References
+## 参考資料
 
 - [clang-format documentation](https://clang.llvm.org/docs/ClangFormat.html)
 - [clang-tidy documentation](https://clang.llvm.org/extra/clang-tidy/)
@@ -375,5 +375,5 @@ Checks: >
 
 ---
 
-**Version:** 1.0.0
+**Version:** 1.0.1
 **Last Updated:** 2025-11-16

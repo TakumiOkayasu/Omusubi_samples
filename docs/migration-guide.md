@@ -1,4 +1,4 @@
-# Migration Guide
+# 移行ガイド
 
 このドキュメントでは、Omusubiの異なるバージョン間での移行方法を説明します。
 
@@ -273,5 +273,5 @@ namespace omusubi {
 
 ---
 
-**Version:** 1.0.0
+**Version:** 1.0.1
 **Last Updated:** 2025-11-16

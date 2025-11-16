@@ -1,4 +1,4 @@
-# Omusubi Architecture
+# Omusubiアーキテクチャ
 
 このドキュメントでは、Omusubiフレームワークの設計思想とアーキテクチャの詳細を説明します。
 
@@ -671,5 +671,5 @@ SerialContext* serial = ctx.get_serial_context<0>();
 
 ---
 
-**Version:** 1.0.0
+**Version:** 1.0.1
 **Last Updated:** 2025-11-16

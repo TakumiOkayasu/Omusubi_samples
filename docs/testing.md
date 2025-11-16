@@ -1,4 +1,4 @@
-# Testing Guide
+# テストガイド
 
 このドキュメントでは、Omusubiプロジェクトのテスト戦略とテスト方法を説明します。
 
@@ -734,5 +734,5 @@ void test() {
 
 ---
 
-**Version:** 1.0.0
+**Version:** 1.0.1
 **Last Updated:** 2025-11-16

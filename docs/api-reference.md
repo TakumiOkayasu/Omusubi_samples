@@ -1,4 +1,4 @@
-# API Reference
+# APIリファレンス
 
 Omusubi APIの完全なリファレンスドキュメントです。
 
@@ -869,5 +869,5 @@ constexpr size_t len = msg.size();
 
 ---
 
-**Version:** 1.0.0
+**Version:** 1.0.1
 **Last Updated:** 2025-11-16

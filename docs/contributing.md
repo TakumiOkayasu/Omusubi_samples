@@ -1,4 +1,4 @@
-# Contributing to Omusubi
+# Omusubiへの貢献
 
 Omusubiプロジェクトへの貢献を歓迎します。このドキュメントでは、プロジェクトへの貢献方法を説明します。
 
@@ -627,5 +627,5 @@ CHANGELOG.md                 # 変更履歴
 
 ---
 
-**Version:** 1.0.0
+**Version:** 1.0.1
 **Last Updated:** 2025-11-16
