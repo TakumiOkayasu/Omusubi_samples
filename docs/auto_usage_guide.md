@@ -117,71 +117,29 @@ auto concatenated = str + static_string(" World");
 
 ### ✅ **数値リテラルの初期化**
 
-**方法1: 明示的な型（従来の方法）**
+**Omusubiの推奨: 明示的な型指定**
 
 ```cpp
-// ✅ Explicit type for clarity
+// ✅ 推奨: 明示的な型（ビット幅・符号が明確）
 uint32_t retry_count = 0;
 uint8_t port_number = 1;
 int32_t temperature = -10;
 ```
 
-**方法2: サフィックスを使った型推論（C++推奨）**
+**⚠️ 問題: サフィックスなしの`auto`**
 
 ```cpp
-// ✅ Type deduction with suffixes (Modern C++)
-auto retry_count = 0U;        // unsigned int
-auto retry_count = 0UL;       // unsigned long
-auto retry_count = uint32_t{0};  // uint32_t (uniform initialization)
-
-auto port_number = uint8_t{1};
-auto temperature = -10;       // int (signed by default)
+// ✗ 非推奨: auto deduces 'int' (not uint32_t)
+auto retry_count = 0;  // int (意図と異なる可能性)
 ```
-
-**⚠️ 注意: サフィックスなしの`auto`**
-
-```cpp
-// ✗ Problem: auto deduces 'int'
-auto retry_count = 0;  // int (32ビット符号付き)
-                       // 意図: uint32_t (32ビット符号なし)
-```
-
-**なぜ問題か:**
-- 数値リテラル`0`は`int`型
-- `int`は符号付き（-2,147,483,648 ～ 2,147,483,647）
-- `uint32_t`は符号なし（0 ～ 4,294,967,295）
-- 意図しない型になる可能性
-
-**推奨される方法:**
-
-| 意図する型 | 明示的な型 | サフィックス/初期化 |
-|-----------|-----------|-------------------|
-| `uint32_t` | `uint32_t count = 0;` | `auto count = 0U;` or `auto count = uint32_t{0};` |
-| `uint8_t` | `uint8_t port = 1;` | `auto port = uint8_t{1};` |
-| `int32_t` | `int32_t temp = -10;` | `auto temp = int32_t{-10};` or `auto temp = -10;` |
-| `size_t` | `size_t size = 0;` | `auto size = size_t{0};` or `auto size = 0UL;` |
-
-**どちらを使うべきか:**
-
-```cpp
-// 組み込みシステムでは明示的な型を推奨
-uint32_t retry_count = 0;     // ← サイズが明確
-uint8_t port_number = 1;      // ← サイズが明確
-
-// 一般的なC++ではサフィックスも可
-auto retry_count = 0U;        // ← 冗長性が低い
-auto port_number = uint8_t{1};  // ← 型が明確
-```
-
-**Omusubiの推奨:**
-- **明示的な型を使う**（特に組み込みシステム）
-- サイズと符号が一目で分かる
-- ハードウェアレジスタやメモリマップドI/Oで重要
 
 **理由:**
-- 組み込みシステムではビット幅が重要
-- `uint32_t`と`int`の違いがバグの原因になりうる
-- 明示的な型の方が意図が明確
+- 組み込みシステムではビット幅と符号の明確化が重要
+- `int`は符号付き、`uint32_t`は符号なし
+- `auto`では意図しない型になる可能性
+
+> **詳細な型選択ガイドライン:**
+> `uint32_t` vs `size_t`の選択基準、サフィックスの使い分け、ラッパー関数の削除理由などは、[型システムの統一](type_system_unification.md)を参照してください。
 
 ### ✅ **リテラルで型が自明な場合 - `auto`推奨**
 
@@ -703,5 +661,5 @@ return std::move(local_var);  // RVOを妨げる可能性
 
 ---
 
-**Version:** 1.0.1
-**Last Updated:** 2025-11-16
+**Version:** 1.1.0
+**Last Updated:** 2025-11-17
