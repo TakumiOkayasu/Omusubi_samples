@@ -4,10 +4,9 @@
 #include <cstdint>
 #include <new>
 
-namespace omusubi {
+#include "types.h"
 
-// Forward declaration
-enum class Error : uint8_t;
+namespace omusubi {
 
 /**
  * @brief Rust風の Result<T, E> 実装
