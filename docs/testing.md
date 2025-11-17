@@ -1,82 +1,529 @@
 # テストガイド
 
-このドキュメントでは、Omusubiプロジェクトのテスト戦略とテスト方法を説明します。
+このドキュメントでは、Omusubiフレームワークにおけるテストの書き方と実行方法を定義します。
 
-## テスト戦略
+## 目次
 
-Omusubiは組み込みシステム向けフレームワークのため、以下の3層テスト戦略を採用しています：
+1. [テスト方針](#テスト方針)
+2. [テストフレームワーク](#テストフレームワーク)
+3. [テストの書き方](#テストの書き方)
+4. [命名規則](#命名規則)
+5. [テスト構造](#テスト構造)
+6. [アサーション](#アサーション)
+7. [テストカバレッジ](#テストカバレッジ)
+8. [モックとスタブ](#モックとスタブ)
+9. [組み込み環境でのテスト](#組み込み環境でのテスト)
+10. [実機テスト](#実機テスト)
 
-1. **インターフェーステスト** - モックを使用した単体テスト
-2. **実機統合テスト** - 実機での動作確認
-3. **サンプルコードテスト** - 実用的な使用例の動作確認
+---
 
-## テストの種類
+## テスト方針
 
-### 1. インターフェーステスト（モック使用）
+### 1. 単体テストの重要性
 
-**目的:** インターフェース設計の妥当性とロジックの正確性を検証
+**Omusubiはヘッダーオンリーの抽象化フレームワークのため、単体テストが品質保証の要。**
 
-**環境:** Dev Container（Ubuntu）
+**テストが必要な理由:**
+- コンパイル時エラーを早期検出
+- `constexpr`関数の正しさを検証
+- 型安全性の保証
+- リファクタリング時の回帰防止
 
-**特徴:**
-- ヒープ割り当てなし
-- 実機不要
-- 高速実行
-- CI/CDで自動実行可能
+### 2. テストファースト開発
 
-**実装例:**
+**新機能実装前にテストを書く習慣を推奨。**
 
 ```cpp
-// tests/mock/mock_serial_context.hpp
-#include "omusubi/device/serial_context.h"
+// 1. テストを先に書く
+void test_new_feature() {
+    test_section("新機能");
+
+    FixedString<32> s;
+    TEST_ASSERT(s.starts_with("H"_sv), "starts_with()が動作する");
+}
+
+// 2. 実装を追加
+// 3. テストが通ることを確認
+```
+
+**利点:**
+- 要件を明確化できる
+- 実装の設計が改善される
+- テスト可能なコードになる
+
+### 3. テスト範囲
+
+**単体テスト対象:**
+- Core types (`span<T>`, `StringView`, `FixedString<N>`, `FixedBuffer<N>`, `Vector3`)
+- Utility functions
+- Interface contracts
+
+**統合テスト対象:**
+- Platform implementations (M5Stack, Arduino, etc.)
+- Device contexts (Serial, WiFi, Bluetooth, etc.)
+- System context
+
+**テスト不要:**
+- Pure virtual interfaces (コンパイル時にチェック済み)
+- Trivial getters/setters (実装がほぼない)
+
+---
+
+## テストフレームワーク
+
+Omusubiは独自の軽量テストフレームワーク `test_framework.hpp` を使用します。
+
+### フレームワークの特徴
+
+```cpp
+namespace test {
+
+// テストスイート開始
+void begin_tests(const char* suite_name);
+
+// テストスイート終了 (失敗数を返す)
+int end_tests();
+
+// テストセクション表示
+void test_section(const char* section_name);
+
+// アサーションマクロ
+TEST_ASSERT(condition, message);
+TEST_ASSERT_EQ(actual, expected, message);
+TEST_ASSERT_STR_EQ(actual, expected, message);
+TEST_ASSERT_FLOAT_EQ(actual, expected, epsilon, message);
+
+} // namespace test
+```
+
+**利点:**
+- ヘッダーオンリー (依存関係なし)
+- 組み込みシステムで動作 (例外不要)
+- シンプルで理解しやすい
+- 日本語メッセージ対応
+
+---
+
+## テストの書き方
+
+### 基本パターン
+
+**すべてのテストファイルはこのパターンに従う:**
+
+```cpp
+// test_example.cpp
+
+#include <omusubi/core/example.hpp>
+
+#include "test_framework.hpp"
+
+namespace example_test {
+
+using namespace omusubi;
+using namespace test;
+
+// テスト関数1
+void test_basic_functionality() {
+    test_section("基本機能");
+
+    // Arrange (準備)
+    Example obj;
+
+    // Act (実行)
+    auto result = obj.do_something();
+
+    // Assert (検証)
+    TEST_ASSERT(result, "do_something()が成功する");
+}
+
+// テスト関数2
+void test_edge_cases() {
+    test_section("エッジケース");
+
+    // ...
+}
+
+// main関数
+int main() {
+    begin_tests("Example");
+
+    test_basic_functionality();
+    test_edge_cases();
+
+    return end_tests();
+}
+
+} // namespace example_test
+```
+
+### AAA パターン (Arrange-Act-Assert)
+
+**すべてのテストケースはAAA パターンに従う:**
+
+```cpp
+void test_fixed_string_append() {
+    test_section("追加操作");
+
+    // Arrange - テスト準備
+    FixedString<32> s;
+
+    // Act - 操作実行
+    bool success = s.append("Hello"_sv);
+
+    // Assert - 結果検証
+    TEST_ASSERT(success, "追加が成功する");
+    TEST_ASSERT_EQ(s.byte_length(), 5U, "バイト長が正しい");
+}
+```
+
+**AAA の利点:**
+- テストの意図が明確
+- 読みやすい構造
+- デバッグが容易
+
+---
+
+## 命名規則
+
+### テストファイル名
+
+**`test_[対象].cpp` の形式:**
+
+```
+test/
+├── test_span.cpp           # span<T>のテスト
+├── test_string_view.cpp    # StringViewのテスト
+├── test_fixed_string.cpp   # FixedString<N>のテスト
+├── test_fixed_buffer.cpp   # FixedBuffer<N>のテスト
+└── test_vector3.cpp        # Vector3のテスト
+```
+
+### テスト関数名
+
+**`test_[対象]_[機能]()` の形式:**
+
+```cpp
+// ✅ 良い例: 明確で具体的
+void test_span_basic();
+void test_span_iteration();
+void test_span_subspan();
+void test_fixed_string_append();
+void test_fixed_string_capacity();
+void test_fixed_string_utf8();
+
+// ❌ 悪い例: 抽象的で不明確
+void test1();
+void test_misc();
+void test_everything();
+```
+
+### テストセクション名
+
+**日本語で機能を説明:**
+
+```cpp
+test_section("基本機能");
+test_section("追加操作");
+test_section("容量制限");
+test_section("UTF-8処理");
+test_section("constexpr対応");
+```
+
+### アサーションメッセージ
+
+**期待される動作を日本語で記述:**
+
+```cpp
+// ✅ 良い例: 何をテストしているか明確
+TEST_ASSERT_EQ(s.byte_length(), 5U, "バイト長が5である");
+TEST_ASSERT(s.append("Hello"_sv), "追加が成功する");
+TEST_ASSERT_STR_EQ(s.c_str(), "Hello", "内容が一致する");
+
+// ❌ 悪い例: メッセージが無い、または不明確
+TEST_ASSERT_EQ(s.byte_length(), 5U, "test");
+TEST_ASSERT(s.append("Hello"_sv), "ok");
+```
+
+---
+
+## テスト構造
+
+### テストスイート構成
+
+```cpp
+namespace example_test {
+
+using namespace omusubi;
+using namespace test;
+
+// ========================================
+// テスト関数群
+// ========================================
+
+void test_basic() {
+    test_section("基本機能");
+    // テストケース
+}
+
+void test_advanced() {
+    test_section("高度な機能");
+    // テストケース
+}
+
+// ========================================
+// main関数
+// ========================================
+
+int main() {
+    begin_tests("Example");
+
+    // テスト関数を呼び出す
+    test_basic();
+    test_advanced();
+
+    return end_tests();
+}
+
+} // namespace example_test
+```
+
+### テストセクションの分割
+
+**機能ごとにテスト関数とセクションを分ける:**
+
+```cpp
+void test_fixed_string_basic() {
+    test_section("基本機能");
+
+    // デフォルトコンストラクタ
+    FixedString<32> s1;
+    TEST_ASSERT_EQ(s1.byte_length(), 0U, "デフォルト構築の文字列は空");
+
+    // C文字列からの構築
+    FixedString<32> s2("Hello");
+    TEST_ASSERT_EQ(s2.byte_length(), 5U, "C文字列からのバイト長");
+}
+
+void test_fixed_string_append() {
+    test_section("追加操作");
+
+    FixedString<32> s;
+    TEST_ASSERT(s.append("Hello"_sv), "StringView追加成功");
+    TEST_ASSERT(s.append(" World"), "C文字列追加成功");
+}
+
+void test_fixed_string_utf8() {
+    test_section("UTF-8処理");
+
+    FixedString<64> s;
+    s.append("こんにちは"_sv);
+    TEST_ASSERT_EQ(s.byte_length(), 15U, "日本語のバイト長（5文字×3バイト）");
+    TEST_ASSERT_EQ(s.char_length(), 5U, "日本語の文字数");
+}
+```
+
+**分割の基準:**
+- 1つのテスト関数は1つの機能に集中
+- 5〜15個のアサーションを目安に
+- 長すぎる場合は細分化する
+
+---
+
+## アサーション
+
+### 基本アサーション
+
+**`TEST_ASSERT(condition, message)`**
+
+```cpp
+// 条件が真であることを検証
+TEST_ASSERT(s.empty(), "文字列が空である");
+TEST_ASSERT(!s.empty(), "文字列が空でない");
+TEST_ASSERT(result, "操作が成功する");
+```
+
+### 等価比較アサーション
+
+**`TEST_ASSERT_EQ(actual, expected, message)`**
+
+```cpp
+// 数値の等価性
+TEST_ASSERT_EQ(s.byte_length(), 5U, "バイト長が5");
+TEST_ASSERT_EQ(count, 3, "カウントが3");
+TEST_ASSERT_EQ(index, 0U, "インデックスが0");
+```
+
+**注意:**
+- 符号付き/符号なし比較に注意 (`5U` vs `5`)
+- `expected`を右側に配置 (読みやすさ)
+
+### 文字列比較アサーション
+
+**`TEST_ASSERT_STR_EQ(actual, expected, message)`**
+
+```cpp
+// C文字列の比較
+TEST_ASSERT_STR_EQ(s.c_str(), "Hello", "内容が'Hello'");
+TEST_ASSERT_STR_EQ(buffer, "", "バッファが空");
+```
+
+### 浮動小数点比較アサーション
+
+**`TEST_ASSERT_FLOAT_EQ(actual, expected, epsilon, message)`**
+
+```cpp
+// 浮動小数点の比較 (誤差許容)
+TEST_ASSERT_FLOAT_EQ(v.x, 1.0F, 0.0001F, "x座標が1.0");
+TEST_ASSERT_FLOAT_EQ(angle, 3.14159F, 0.00001F, "角度がπ");
+```
+
+**epsilon の選び方:**
+- 単精度float: `0.0001F` 〜 `0.00001F`
+- 倍精度double: `0.0000001` 〜 `0.00000001`
+- センサー値: `0.01F` 〜 `0.1F` (ハードウェアの精度に依存)
+
+### アサーション使い分け
+
+```cpp
+// ✅ 良い例: 適切なアサーションを使用
+TEST_ASSERT_EQ(count, 5, "カウントが5");              // 整数比較
+TEST_ASSERT_STR_EQ(s.c_str(), "Hello", "文字列一致"); // 文字列比較
+TEST_ASSERT_FLOAT_EQ(x, 1.0F, 0.001F, "浮動小数点");  // 浮動小数点比較
+
+// ❌ 悪い例: 不適切なアサーション
+TEST_ASSERT(count == 5, "カウントが5");  // TEST_ASSERT_EQを使うべき
+TEST_ASSERT(strcmp(s.c_str(), "Hello") == 0, "文字列一致");  // TEST_ASSERT_STR_EQを使うべき
+```
+
+---
+
+## テストカバレッジ
+
+### カバレッジ目標
+
+**コアライブラリ:**
+- ステートメントカバレッジ: **90%以上**
+- ブランチカバレッジ: **80%以上**
+
+**プラットフォーム実装:**
+- ステートメントカバレッジ: **70%以上**
+- ブランチカバレッジ: **60%以上**
+
+### テストすべきケース
+
+**1. 正常系 (Happy Path)**
+
+```cpp
+void test_normal_case() {
+    test_section("正常系");
+
+    FixedString<32> s;
+    TEST_ASSERT(s.append("Hello"_sv), "通常の追加が成功");
+    TEST_ASSERT_EQ(s.byte_length(), 5U, "正しいバイト長");
+}
+```
+
+**2. 境界値 (Boundary)**
+
+```cpp
+void test_boundary() {
+    test_section("境界値");
+
+    FixedString<10> s;
+
+    // 容量いっぱい
+    TEST_ASSERT(s.append("1234567890"), "容量いっぱいまで追加成功");
+    TEST_ASSERT_EQ(s.byte_length(), 10U, "バイト長が容量と一致");
+
+    // 容量超過
+    TEST_ASSERT(!s.append("X"), "容量超過は失敗");
+}
+```
+
+**3. エラー系 (Error Cases)**
+
+```cpp
+void test_error_cases() {
+    test_section("エラー処理");
+
+    span<int> empty_span;
+    TEST_ASSERT(empty_span.empty(), "空のspanはempty()がtrue");
+
+    // 範囲外アクセス (デバッグビルドでassertされるべき)
+    // リリースビルドでは未定義動作のためテストしない
+}
+```
+
+**4. エッジケース (Edge Cases)**
+
+```cpp
+void test_edge_cases() {
+    test_section("エッジケース");
+
+    // 空文字列
+    FixedString<32> empty;
+    TEST_ASSERT_EQ(empty.byte_length(), 0U, "空文字列のバイト長は0");
+    TEST_ASSERT_STR_EQ(empty.c_str(), "", "空文字列の内容");
+
+    // 1文字
+    FixedString<32> single("A");
+    TEST_ASSERT_EQ(single.byte_length(), 1U, "1文字のバイト長");
+
+    // UTF-8マルチバイト文字
+    FixedString<32> multibyte("あ");
+    TEST_ASSERT_EQ(multibyte.byte_length(), 3U, "マルチバイト文字のバイト長");
+    TEST_ASSERT_EQ(multibyte.char_length(), 1U, "マルチバイト文字の文字数");
+}
+```
+
+**5. constexpr 検証**
+
+```cpp
+void test_constexpr() {
+    test_section("constexpr対応");
+
+    // コンパイル時計算
+    {
+        constexpr auto s = fixed_string("Hello");
+        static_assert(s.byte_length() == 5, "constexpr byte_length()");
+        static_assert(s.capacity() == 5, "constexpr capacity()");
+    }
+
+    // コンパイル時UTF-8処理
+    {
+        constexpr auto s = fixed_string("こんにちは");
+        static_assert(s.byte_length() == 15, "constexpr UTF-8バイト長");
+        static_assert(s.char_length() == 5, "constexpr UTF-8文字数");
+    }
+
+    // 実行時検証も追加
+    auto runtime_str = fixed_string("Hello");
+    TEST_ASSERT_EQ(runtime_str.byte_length(), 5U, "constexpr関数の実行時使用");
+}
+```
+
+---
+
+## モックとスタブ
+
+### モックの基本方針
+
+**組み込み環境でのモックは軽量に保つ。**
+
+**モック実装パターン:**
+
+```cpp
+// テスト用モック実装
+namespace test {
 
 class MockSerialContext : public SerialContext {
 private:
-    FixedBuffer<256> write_buffer_;
     FixedBuffer<256> read_buffer_;
+    FixedBuffer<256> write_buffer_;
     bool connected_ = false;
 
 public:
-    // ByteReadable
-    size_t read(span<uint8_t> buffer) override {
-        size_t n = (buffer.size() < read_buffer_.length())
-                   ? buffer.size()
-                   : read_buffer_.length();
-
-        for (size_t i = 0; i < n; ++i) {
-            buffer[i] = read_buffer_[i];
-        }
-
-        return n;
-    }
-
-    size_t available() const override {
-        return read_buffer_.length();
-    }
-
-    // TextReadable
-    size_t read_line(span<char> buffer) override {
-        // 改行までを読み取る実装
-        return 0;
-    }
-
-    // ByteWritable
-    size_t write(span<const uint8_t> data) override {
-        for (size_t i = 0; i < data.size(); ++i) {
-            write_buffer_.append(data[i]);
-        }
-        return data.size();
-    }
-
-    // TextWritable
-    size_t write_text(span<const char> text) override {
-        for (size_t i = 0; i < text.size(); ++i) {
-            write_buffer_.append(static_cast<uint8_t>(text[i]));
-        }
-        return text.size();
-    }
-
-    // Connectable
+    // Connectable interface
     bool connect() override {
         connected_ = true;
         return true;
@@ -90,149 +537,199 @@ public:
         return connected_;
     }
 
+    // ByteReadable interface
+    size_t read(span<uint8_t> buffer) override {
+        auto count = (buffer.size() < read_buffer_.size())
+            ? buffer.size()
+            : read_buffer_.size();
+        for (size_t i = 0; i < count; ++i) {
+            buffer[i] = read_buffer_[i];
+        }
+        return count;
+    }
+
+    size_t available() const override {
+        return read_buffer_.size();
+    }
+
+    // ByteWritable interface
+    size_t write(span<const uint8_t> data) override {
+        write_buffer_.clear();
+        for (auto byte : data) {
+            write_buffer_.append(byte);
+        }
+        return data.size();
+    }
+
     // テスト用ヘルパー
-    void set_read_data(span<const uint8_t> data) {
+    void set_read_data(StringView data) {
         read_buffer_.clear();
-        for (size_t i = 0; i < data.size(); ++i) {
-            read_buffer_.append(data[i]);
+        for (char c : data) {
+            read_buffer_.append(static_cast<uint8_t>(c));
         }
     }
 
-    span<const uint8_t> get_written_data() const {
-        return write_buffer_.as_span();
+    StringView get_written_data() const {
+        return StringView(
+            reinterpret_cast<const char*>(write_buffer_.data()),
+            write_buffer_.size()
+        );
     }
 };
+
+} // namespace test
 ```
 
-**テストコード例:**
+### モックを使ったテスト
 
 ```cpp
-// tests/test_serial.cpp
-#include "mock/mock_serial_context.hpp"
+void test_with_mock() {
+    test_section("モックを使ったテスト");
 
-void test_serial_write() {
-    MockSerialContext serial;
+    // Arrange
+    test::MockSerialContext mock_serial;
+    mock_serial.set_read_data("Hello"_sv);
 
-    // 接続テスト
-    assert(!serial.is_connected());
-    assert(serial.connect());
-    assert(serial.is_connected());
-
-    // 書き込みテスト
-    const char* msg = "Hello";
-    size_t n = serial.write_text(span<const char>(msg, 5));
-    assert(n == 5);
-
-    // 書き込みデータ確認
-    span<const uint8_t> written = serial.get_written_data();
-    assert(written.size() == 5);
-    assert(written[0] == 'H');
-    assert(written[4] == 'o');
-}
-
-void test_serial_read() {
-    MockSerialContext serial;
-
-    // 読み取りデータを設定
-    uint8_t data[] = {'W', 'o', 'r', 'l', 'd'};
-    serial.set_read_data(span<const uint8_t>(data, 5));
-
-    // 利用可能バイト数確認
-    assert(serial.available() == 5);
-
-    // 読み取りテスト
+    // Act
     uint8_t buffer[10];
-    size_t n = serial.read(span<uint8_t>(buffer, 10));
-    assert(n == 5);
-    assert(buffer[0] == 'W');
-    assert(buffer[4] == 'd');
-}
+    size_t bytes_read = mock_serial.read(span<uint8_t>(buffer, 10));
 
-int main() {
-    test_serial_write();
-    test_serial_read();
-
-    return 0;
+    // Assert
+    TEST_ASSERT_EQ(bytes_read, 5U, "5バイト読み取り");
+    TEST_ASSERT_EQ(buffer[0], 'H', "最初の文字が'H'");
 }
 ```
 
-### 2. 実機統合テスト
+### スタブの使用
 
-**目的:** 実際のハードウェアでの動作確認
-
-**環境:** M5Stack、Arduino、Raspberry Pi Pico等
-
-**特徴:**
-- 実機が必要
-- ハードウェア固有の問題を検出
-- 手動実行
-
-**実装例:**
+**外部依存を排除したい場合にスタブを使用:**
 
 ```cpp
-// tests/integration/m5stack/test_wifi.cpp
+// スタブ: 常に固定値を返す
+class StubSensorContext : public AccelerometerContext {
+public:
+    Vector3 get_values() const override {
+        return Vector3{0.0F, 0.0F, 9.8F};  // 常に静止状態
+    }
+};
+
+void test_with_stub() {
+    test_section("スタブを使ったテスト");
+
+    StubSensorContext stub;
+    auto values = stub.get_values();
+
+    TEST_ASSERT_FLOAT_EQ(values.z, 9.8F, 0.1F, "重力加速度が正しい");
+}
+```
+
+---
+
+## 組み込み環境でのテスト
+
+### 組み込み環境の制約
+
+**組み込みシステムでのテストは以下の制約を考慮:**
+
+1. **メモリ制約**: ヒープアロケーション禁止
+2. **実行時間**: リアルタイム性を損なわない
+3. **ハードウェア依存**: モック/スタブで分離
+4. **例外なし**: エラーは戻り値で通知
+
+### ホスト環境でのテスト (推奨)
+
+**開発マシン (Linux/macOS/Windows) でテストを実行:**
+
+```bash
+# ホスト環境でビルド・実行
+cd test
+clang++ -std=c++14 -Wall -Wextra -I../include \
+    test_all.cpp \
+    test_span.cpp \
+    test_string_view.cpp \
+    test_fixed_string.cpp \
+    test_fixed_buffer.cpp \
+    test_vector3.cpp \
+    -o test_runner
+
+# テスト実行
+./test_runner
+
+# 出力例:
+# ╔═══════════════════════════════════════╗
+# ║  Omusubi フレームワーク 単体テスト    ║
+# ╚═══════════════════════════════════════╝
+#
+# ========================================
+# テストスイート: span<T>
+# ========================================
+# [基本機能]
+#   ✓ 空のspanはempty()がtrue
+#   ✓ 空のspanのサイズは0
+#   ...
+# 結果: 127 / 127 テスト成功
+```
+
+**利点:**
+- 高速なイテレーション
+- デバッガが使える
+- メモリチェッカー (Valgrind, ASan) が使える
+
+---
+
+## 実機テスト
+
+### ターゲット環境でのテスト
+
+**実機 (M5Stack, Arduino) でのテスト:**
+
+```cpp
+// examples/platform/m5stack/test_on_device.cpp
+
 #include <omusubi/omusubi.h>
+#include "test_framework.hpp"
 
 using namespace omusubi;
-using namespace omusubi::literals;
+using namespace test;
 
 SystemContext& ctx = get_system_context();
-WiFiContext* wifi = nullptr;
 SerialContext* serial = nullptr;
+
+void test_serial_loopback() {
+    test_section("シリアル通信テスト");
+
+    serial->write("Hello"_sv);
+    ctx.delay(100);
+
+    uint8_t buffer[10];
+    size_t bytes = serial->read(span<uint8_t>(buffer, 10));
+    TEST_ASSERT_EQ(bytes, 5U, "5バイト読み取り");
+}
 
 void setup() {
     ctx.begin();
-
-    wifi = ctx.get_connectable_context()->get_wifi_context();
     serial = ctx.get_connectable_context()->get_serial_context(0);
+    serial->connect();
 
-    serial->write_text("=== WiFi Integration Test ==="_sv);
+    begin_tests("実機テスト");
+    test_serial_loopback();
+    end_tests();
 }
 
 void loop() {
     ctx.update();
-
-    // テスト1: WiFiスキャン
-    serial->write_text("Test 1: WiFi Scan..."_sv);
-    wifi->start_scan();
-    ctx.delay(3000);
-    wifi->stop_scan();
-
-    uint8_t count = wifi->get_found_count();
-    serial->write_text("Found "_sv);
-    // count出力
-    serial->write_text(" networks"_sv);
-
-    if (count > 0) {
-        serial->write_text("PASS"_sv);
-    } else {
-        serial->write_text("FAIL"_sv);
-    }
-
-    // テスト2: WiFi接続
-    serial->write_text("Test 2: WiFi Connect..."_sv);
-    bool connected = wifi->connect_to("TestSSID"_sv, "password"_sv);
-
-    if (connected && wifi->is_connected()) {
-        serial->write_text("PASS"_sv);
-        wifi->disconnect();
-    } else {
-        serial->write_text("FAIL"_sv);
-    }
-
-    serial->write_text("=== Test Complete ==="_sv);
-
-    // テスト終了
-    while (true) {
-        ctx.delay(1000);
-    }
 }
 ```
 
-**実行方法:**
+**実機テストの用途:**
+- ハードウェア統合テスト
+- タイミング検証
+- リソース使用量測定
+
+### PlatformIOでの実機テスト実行
 
 ```bash
-# PlatformIOでビルド
+# ビルド
 pio run -e m5stack
 
 # アップロード
@@ -242,497 +739,194 @@ pio run -e m5stack --target upload
 pio device monitor
 ```
 
-### 3. サンプルコードテスト
+---
 
-**目的:** 実用的な使用例の動作確認とドキュメント化
+## ベストプラクティス
 
-**環境:** 実機
-
-**特徴:**
-- ユーザー向けの実用例
-- ドキュメントとしても機能
-- 手動実行
-
-**実装例:**
+### 1. 1つのテストは1つのことを検証
 
 ```cpp
-// examples/platform/m5stack/serial_echo.cpp
-// シリアルエコーのサンプルコード
-
-#include <omusubi/omusubi.h>
-
-using namespace omusubi;
-using namespace omusubi::literals;
-
-SystemContext& ctx = get_system_context();
-SerialContext* serial = nullptr;
-
-void setup() {
-    ctx.begin();
-
-    // Serial0を取得（USB Serial、自動接続済み）
-    serial = ctx.get_connectable_context()->get_serial_context(0);
-
-    serial->write_text("=== Serial Echo Example ==="_sv);
-    serial->write_text("Type something..."_sv);
+// ✅ 良い例: 1つの機能を検証
+void test_append_success() {
+    FixedString<32> s;
+    TEST_ASSERT(s.append("Hello"_sv), "追加が成功する");
 }
 
-void loop() {
-    ctx.update();
+void test_append_capacity() {
+    FixedString<10> s("1234567890");
+    TEST_ASSERT(!s.append("X"), "容量超過時は失敗する");
+}
 
-    // データが利用可能かチェック
-    if (serial->available() > 0) {
-        // 1行読み取り
-        char buffer[256];
-        size_t n = serial->read_line(span<char>(buffer, 256));
+// ❌ 悪い例: 複数の機能を混在
+void test_append() {
+    FixedString<32> s1;
+    TEST_ASSERT(s1.append("Hello"_sv), "追加成功");
 
-        if (n > 0) {
-            // エコーバック
-            serial->write_text("Echo: "_sv);
-            serial->write_text(span<const char>(buffer, n));
-        }
-    }
-
-    ctx.delay(10);
+    FixedString<10> s2("1234567890");
+    TEST_ASSERT(!s2.append("X"), "容量超過");
+    // 2つの異なるケースが混在している
 }
 ```
 
-## モックの作成方法
-
-### 基本パターン
+### 2. テストは独立させる
 
 ```cpp
-// 1. インターフェースを継承
-class MockDeviceContext : public DeviceContext {
-private:
-    // 2. テストデータを保持
-    FixedBuffer<256> buffer_;
-    bool connected_ = false;
+// ✅ 良い例: 各テストで新しいオブジェクトを作成
+void test_clear() {
+    FixedString<32> s("Hello");
+    s.clear();
+    TEST_ASSERT_EQ(s.byte_length(), 0U, "クリア後は空");
+}
 
-public:
-    // 3. インターフェースメソッドを実装
-    bool connect() override {
-        connected_ = true;
-        return true;
-    }
+void test_append() {
+    FixedString<32> s;  // 新しいオブジェクト
+    TEST_ASSERT(s.append("World"_sv), "追加成功");
+}
 
-    // 4. テスト用ヘルパーメソッドを追加
-    void set_test_data(span<const uint8_t> data) {
-        buffer_.clear();
-        for (size_t i = 0; i < data.size(); ++i) {
-            buffer_.append(data[i]);
-        }
-    }
+// ❌ 悪い例: グローバル変数でテスト間に依存
+FixedString<32> global_str;  // テスト間で共有
 
-    span<const uint8_t> get_captured_data() const {
-        return buffer_.as_span();
-    }
-};
+void test_append() {
+    global_str.append("Hello");  // 前のテストの状態に依存
+}
 ```
 
-### テスト用SystemContextの作成
+### 3. 明確なエラーメッセージ
 
 ```cpp
-// tests/mock/mock_system_context.hpp
-class MockSystemContext : public SystemContext {
-private:
-    mutable MockConnectableContext connectable_;
-    mutable MockSensorContext sensor_;
-    // ... 他のContext
+// ✅ 良い例: 何が期待されるか明確
+TEST_ASSERT_EQ(s.byte_length(), 5U, "バイト長が5である");
+TEST_ASSERT(result, "connect()が成功する");
+TEST_ASSERT(!buffer.full(), "バッファが満杯でない");
 
-public:
-    MockSystemContext() = default;
-
-    void begin() override {
-        // モックの初期化
-    }
-
-    void update() override {
-        // 何もしない
-    }
-
-    void delay(uint32_t ms) override {
-        // 何もしない（テストでは待機不要）
-    }
-
-    void reset() override {
-        // 何もしない
-    }
-
-    ConnectableContext* get_connectable_context() const override {
-        return &connectable_;
-    }
-
-    // ... 他のgetter
-};
+// ❌ 悪い例: メッセージが不明確
+TEST_ASSERT_EQ(s.byte_length(), 5U, "test");
+TEST_ASSERT(result, "ok");
+TEST_ASSERT(!buffer.full(), "check");
 ```
 
-**使用例:**
+### 4. constexpr 関数は static_assert でも検証
 
 ```cpp
-void test_with_mock_context() {
-    MockSystemContext ctx;
-    ctx.begin();
+void test_constexpr() {
+    // コンパイル時検証
+    constexpr auto s = fixed_string("Hello");
+    static_assert(s.byte_length() == 5, "constexpr計算");
+    static_assert(s.capacity() == 5, "constexpr容量");
 
-    // モックデバイスを取得
-    MockSerialContext* serial = static_cast<MockSerialContext*>(
-        ctx.get_connectable_context()->get_serial_context(0)
-    );
-
-    // テストデータ設定
-    serial->set_test_data(...);
-
-    // テスト実行
-    // ...
+    // 実行時検証 (必須)
+    TEST_ASSERT_EQ(s.byte_length(), 5U, "実行時のバイト長");
+    TEST_ASSERT_EQ(s.capacity(), 5U, "実行時の容量");
 }
 ```
 
-## 実機テスト手順
-
-### M5Stack
-
-**1. 環境準備**
-
-```bash
-# PlatformIO環境確認
-pio --version
-
-# プロジェクトディレクトリに移動
-cd omusubi/tests/integration/m5stack
-```
-
-**2. platformio.iniの設定**
-
-```ini
-[env:m5stack]
-platform = espressif32
-board = m5stack-core-esp32
-framework = arduino
-
-lib_deps =
-    m5stack/M5Stack@^0.4.3
-
-build_flags =
-    -std=c++14
-    -I../../../include
-
-src_filter =
-    +<test_*.cpp>
-    +<../../../src/platform/m5stack/>
-```
-
-**3. ビルドとアップロード**
-
-```bash
-# ビルド
-pio run -e m5stack
-
-# アップロード（M5Stack接続済み）
-pio run -e m5stack --target upload
-
-# シリアルモニタで確認
-pio device monitor
-```
-
-**4. テスト結果の確認**
-
-シリアル出力で以下を確認：
-- テストケース名
-- PASS/FAIL表示
-- エラーメッセージ（失敗時）
-
-### Arduino
-
-（実装予定）
-
-### Raspberry Pi Pico
-
-（実装予定）
-
-## CI/CDでのテスト
-
-### GitHub Actions設定
-
-```yaml
-# .github/workflows/test.yml
-name: Test
-
-on:
-  push:
-    branches: [ main, develop ]
-  pull_request:
-    branches: [ main, develop ]
-
-jobs:
-  unit-test:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y clang++ cmake
-
-      - name: Build tests
-        run: |
-          cd tests
-          cmake .
-          make
-
-      - name: Run tests
-        run: |
-          cd tests
-          ./run_all_tests
-```
-
-### テストの自動実行
-
-現在、CI環境では以下のみ実行：
-- フォーマットチェック
-- Lintチェック
-
-実機テストはローカルまたは手動で実行する必要があります。
-
-## テストカバレッジ
-
-### 重点テスト項目
-
-**1. インターフェース契約の検証**
+### 5. テストコードも読みやすく
 
 ```cpp
-// すべてのインターフェースメソッドが正しく動作するか
-void test_interface_contract() {
-    MockDevice device;
+// ✅ 良い例: AAA パターンで構造化
+void test_example() {
+    test_section("例");
 
-    // 初期状態の確認
-    assert(!device.is_connected());
+    // Arrange
+    FixedString<32> s;
 
-    // 接続テスト
-    assert(device.connect());
-    assert(device.is_connected());
+    // Act
+    auto result = s.append("Hello"_sv);
 
-    // 切断テスト
-    device.disconnect();
-    assert(!device.is_connected());
+    // Assert
+    TEST_ASSERT(result, "追加が成功する");
+    TEST_ASSERT_EQ(s.byte_length(), 5U, "バイト長が正しい");
 }
 ```
-
-**2. エラーハンドリング**
-
-```cpp
-// エラー条件での動作確認
-void test_error_handling() {
-    MockDevice device;
-
-    // 接続前の操作
-    uint8_t buffer[10];
-    size_t n = device.read(span<uint8_t>(buffer, 10));
-    assert(n == 0);  // 接続前は読み取れない
-
-    // 容量超過
-    FixedString<8> small;
-    bool result = small.append("1234567890");
-    assert(!result);  // 容量不足でfalse
-}
-```
-
-**3. 境界値テスト**
-
-```cpp
-// 境界値での動作確認
-void test_boundary_values() {
-    FixedString<256> str;
-
-    // 最大容量まで追加
-    for (uint32_t i = 0; i < 256; ++i) {
-        assert(str.append('x'));
-    }
-
-    // 容量超過
-    assert(!str.append('y'));
-}
-```
-
-**4. メモリ安全性**
-
-```cpp
-// ヒープ割り当てなしの確認
-void test_no_heap_allocation() {
-    // スタック割り当てのみ
-    FixedString<256> str;
-    FixedBuffer<1024> buffer;
-    Vector3 vec;
-
-    // すべてスタックに配置されている
-    assert(true);
-}
-```
-
-## テストのベストプラクティス
-
-### 1. テストは独立させる
-
-```cpp
-// ❌ 悪い例：テスト間で状態を共有
-MockDevice global_device;
-
-void test1() {
-    global_device.connect();
-    // ...
-}
-
-void test2() {
-    // test1の状態に依存
-    assert(global_device.is_connected());
-}
-
-// ✅ 良い例：各テストで独立したインスタンス
-void test1() {
-    MockDevice device;
-    device.connect();
-    // ...
-}
-
-void test2() {
-    MockDevice device;
-    // 独立した状態
-}
-```
-
-### 2. 意図を明確にする
-
-```cpp
-// ✅ 良い例：テストの意図が明確
-void test_serial_write_increments_buffer() {
-    MockSerialContext serial;
-
-    // Given: 空の状態
-    assert(serial.get_written_data().size() == 0);
-
-    // When: データを書き込む
-    serial.write_text("Hello"_sv);
-
-    // Then: バッファに追加される
-    assert(serial.get_written_data().size() == 5);
-}
-```
-
-### 3. エッジケースをテストする
-
-```cpp
-void test_edge_cases() {
-    FixedString<256> str;
-
-    // 空文字列
-    assert(str.byte_length() == 0);
-
-    // null文字列
-    str.append(nullptr);
-    assert(str.byte_length() == 0);
-
-    // 容量ちょうど
-    for (uint32_t i = 0; i < 256; ++i) {
-        str.append('x');
-    }
-    assert(str.byte_length() == 256);
-
-    // 容量超過
-    assert(!str.append('y'));
-}
-```
-
-### 4. 実機テストの自動化（推奨）
-
-```cpp
-// 実機テスト結果をシリアル出力
-void run_integration_tests() {
-    serial->write_text("=== Integration Tests ==="_sv);
-
-    uint32_t passed = 0;
-    uint32_t failed = 0;
-
-    // Test 1
-    if (test_wifi_scan()) {
-        serial->write_text("PASS: WiFi Scan"_sv);
-        passed++;
-    } else {
-        serial->write_text("FAIL: WiFi Scan"_sv);
-        failed++;
-    }
-
-    // Test 2
-    // ...
-
-    // 結果サマリー
-    serial->write_text("Passed: "_sv);
-    // passed出力
-    serial->write_text("Failed: "_sv);
-    // failed出力
-}
-```
-
-## トラブルシューティング
-
-### モックが正しく動作しない
-
-**原因:** インターフェースメソッドの実装漏れ
-
-**解決策:** すべての純粋仮想関数を実装
-
-```cpp
-// コンパイルエラーで未実装メソッドが検出される
-class MockDevice : public DeviceContext {
-    // すべてのメソッドを実装する必要がある
-};
-```
-
-### 実機テストがタイムアウトする
-
-**原因:** ハードウェア初期化の遅延
-
-**解決策:** 十分な待機時間を設定
-
-```cpp
-void setup() {
-    ctx.begin();
-    ctx.delay(1000);  // 初期化待機
-
-    wifi = ctx.get_wifi_context();
-    ctx.delay(500);  // WiFi初期化待機
-}
-```
-
-### メモリ不足エラー
-
-**原因:** スタック上の大きなバッファ
-
-**解決策:** グローバル変数として配置
-
-```cpp
-// ❌ スタックオーバーフロー
-void test() {
-    FixedBuffer<4096> large_buffer;  // スタック上
-}
-
-// ✅ 静的領域に配置
-static FixedBuffer<4096> large_buffer;
-
-void test() {
-    large_buffer.clear();
-    // 使用
-}
-```
-
-## 参考資料
-
-- [Contributing Guide](contributing.md) - テストの要件
-- [Architecture](architecture.md) - モック設計のガイドライン
-- [API Reference](api-reference.md) - インターフェース仕様
 
 ---
 
-**Version:** 1.0.1
-**Last Updated:** 2025-11-16
+## テスト実行
+
+### ホスト環境でのテスト実行
+
+```bash
+# テストをビルド
+cd test
+clang++ -std=c++14 -Wall -Wextra -I../include \
+    test_all.cpp \
+    test_span.cpp \
+    test_string_view.cpp \
+    test_fixed_string.cpp \
+    test_fixed_buffer.cpp \
+    test_vector3.cpp \
+    -o test_runner
+
+# テスト実行
+./test_runner
+
+# 出力例:
+# ╔═══════════════════════════════════════╗
+# ║  Omusubi フレームワーク 単体テスト    ║
+# ╚═══════════════════════════════════════╝
+#
+# ========================================
+# テストスイート: span<T>
+# ========================================
+# [基本機能]
+#   ✓ 空のspanはempty()がtrue
+#   ✓ 空のspanのサイズは0
+#   ...
+# 結果: 127 / 127 テスト成功
+```
+
+### CI での自動テスト
+
+**GitHub Actions で自動実行:**
+
+```yaml
+# .github/workflows/test.yml
+name: Run Tests
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install Clang
+        run: sudo apt-get install -y clang
+      - name: Run Tests
+        run: |
+          cd test
+          make
+          ./test_runner
+```
+
+---
+
+## チェックリスト
+
+テスト作成時のチェックリスト:
+
+- [ ] 正常系をテストしている
+- [ ] 境界値をテストしている
+- [ ] エラー系をテストしている
+- [ ] エッジケースをテストしている
+- [ ] constexpr 関数を static_assert で検証している
+- [ ] AAA パターンに従っている
+- [ ] テストは独立している
+- [ ] エラーメッセージが明確である
+- [ ] テスト関数名が適切である
+- [ ] テストセクションで分類している
+- [ ] ホスト環境でテストが通る
+- [ ] 実機でも検証した (プラットフォーム実装の場合)
+
+---
+
+## 関連ドキュメント
+
+- [エラーハンドリングガイド](error-handling.md) - テスト時のエラーケース検証
+- CLAUDE.md - コーディング規約全般
+- [デバッグガイド](debug.md) - テスト失敗時のデバッグ手法
+
+---
+
+**Version:** 2.0.0
+**Last Updated:** 2025-11-17
