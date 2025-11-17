@@ -25,9 +25,20 @@ public:
 
 /**
  * @brief テキスト書き込みインターフェース
+ *
+ * Java設計思想: java.io.Writerに相当
+ * - ByteWritable（OutputStream相当）とは独立したインターフェース
+ * - ISP（インターフェース分離原則）に従い、責務を分離
  */
-class TextWritable : public ByteWritable {
+class TextWritable {
 public:
+    TextWritable() = default;
+    virtual ~TextWritable() = default;
+    TextWritable(const TextWritable&) = delete;
+    TextWritable& operator=(const TextWritable&) = delete;
+    TextWritable(TextWritable&&) = delete;
+    TextWritable& operator=(TextWritable&&) = delete;
+
     /** @brief テキストを書き込む */
     virtual size_t write_text(span<const char> text) = 0;
 };

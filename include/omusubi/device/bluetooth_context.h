@@ -10,7 +10,7 @@ namespace omusubi {
 /**
  * @brief Bluetooth Classic通信デバイス
  */
-class BluetoothContext : public ByteReadable, public TextReadable, public TextWritable, public Connectable, public Scannable {
+class BluetoothContext : public ByteReadable, public TextReadable, public ByteWritable, public TextWritable, public Connectable, public Scannable {
 public:
     BluetoothContext() = default;
     ~BluetoothContext() override = default;
@@ -41,7 +41,7 @@ public:
     void start_scan() override = 0;
     void stop_scan() override = 0;
     uint8_t get_found_count() const override = 0;
-    FixedString<64> get_found_name(uint8_t index) const override = 0;
+    StringView get_found_name(uint8_t index) const override = 0;
     int32_t get_found_signal_strength(uint8_t index) const override = 0;
 };
 

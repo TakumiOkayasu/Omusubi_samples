@@ -1,6 +1,6 @@
 #pragma once
 
-#include "omusubi/core/fixed_string.hpp"
+#include "omusubi/core/string_view.h"
 
 #include <cstdint>
 
@@ -8,6 +8,10 @@ namespace omusubi {
 
 /**
  * @brief スキャン機能インターフェース
+ *
+ * Java設計思想: java.util.Scannerに相当
+ * - 具体型（FixedString）ではなく抽象型（StringView）を返す
+ * - 実装の詳細を隠蔽
  */
 class Scannable {
 public:
@@ -27,8 +31,8 @@ public:
     /** @brief 発見されたデバイス数を取得 */
     virtual uint8_t get_found_count() const = 0;
 
-    /** @brief 発見されたデバイス名を取得 */
-    virtual FixedString<64> get_found_name(uint8_t index) const = 0;
+    /** @brief 発見されたデバイス名を取得（Java String相当） */
+    virtual StringView get_found_name(uint8_t index) const = 0;
 
     /** @brief 発見されたデバイスの信号強度を取得 */
     virtual int32_t get_found_signal_strength(uint8_t index) const = 0;

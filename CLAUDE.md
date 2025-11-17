@@ -325,13 +325,21 @@ route->set_handler([](HTTPRequest& req) { /* ... */ });
 
 ### 1. Interface Layer (`include/omusubi/interface/`)
 **`*able` interfaces define single-responsibility contracts (following Interface Segregation Principle):**
-- `Readable` - Reading data from devices
-- `Writable` - Writing data to devices
+- `ByteReadable` - Reading byte data (Java `InputStream` pattern)
+- `TextReadable` - Reading text data (Java `Reader` pattern)
+- `ByteWritable` - Writing byte data (Java `OutputStream` pattern)
+- `TextWritable` - Writing text data (Java `Writer` pattern)
 - `Connectable` - Connection management (connect, disconnect, status)
-- `Scannable` - Network/device scanning (start, stop, results)
+- `Scannable` - Network/device scanning (Java `Scanner` pattern)
 - `Pressable` - Button state management
 - `Measurable` / `Measurable3D` - Sensor measurements
 - `Displayable` - Display output
+
+**Java Design Philosophy:**
+- Interfaces return **abstract types** (e.g., `StringView`) instead of concrete types (e.g., `FixedString<N>`)
+- Follows **Dependency Inversion Principle (DIP)**: High-level modules depend on abstractions, not implementations
+- Each interface has a **single responsibility** (ISP)
+- Text and byte I/O are **separate interfaces** (like Java `Reader`/`Writer` vs `InputStream`/`OutputStream`)
 
 **Interface Design Rule (ISP - Interface Segregation Principle):**
 
@@ -347,11 +355,12 @@ Each `*able` interface MUST represent a **single responsibility**, but may conta
 ```cpp
 // ✅ GOOD - Single responsibility: Scanning
 // Multiple methods serve the scanning purpose
+// Java design: Returns StringView (abstract) instead of FixedString<N> (concrete)
 class Scannable {
     virtual void start_scan() = 0;
     virtual void stop_scan() = 0;
     virtual uint8_t get_found_count() const = 0;
-    virtual FixedString<64> get_found_name(uint8_t index) const = 0;
+    virtual StringView get_found_name(uint8_t index) const = 0;
     virtual int32_t get_found_signal_strength(uint8_t index) const = 0;
 };
 
@@ -362,20 +371,25 @@ class Connectable {
     virtual bool is_connected() const = 0;
 };
 
-// ✅ GOOD - Single responsibility: Reading
-class Readable {
-    virtual FixedBuffer<256> read() = 0;
-    virtual uint32_t available() const = 0;
-    virtual FixedString<256> read_line() = 0;
+// ✅ GOOD - Single responsibility: Byte reading (Java InputStream pattern)
+class ByteReadable {
+    virtual size_t read(span<uint8_t> buffer) = 0;
+    virtual size_t available() const = 0;
+};
+
+// ✅ GOOD - Single responsibility: Text reading (Java Reader pattern)
+// Independent from ByteReadable (ISP compliance)
+class TextReadable {
+    virtual size_t read_line(span<char> buffer) = 0;
 };
 
 // ❌ BAD - Multiple responsibilities mixed
 class NetworkDevice {
-    virtual bool connect() = 0;      // Connection responsibility
-    virtual uint8_t scan() = 0;      // Scanning responsibility
-    virtual FixedBuffer<256> read() = 0;  // Reading responsibility
+    virtual bool connect() = 0;           // Connection responsibility
+    virtual void start_scan() = 0;        // Scanning responsibility
+    virtual size_t read(span<uint8_t> buffer) = 0;  // Reading responsibility
 };
-// Instead: Inherit from Connectable + Scannable + Readable
+// Instead: Inherit from Connectable + Scannable + ByteReadable
 ```
 
 **When to add methods to an interface:**
