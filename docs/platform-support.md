@@ -28,6 +28,16 @@
 - M5Stack Fire
 - M5Stack Grey
 
+**C++サポート:**
+| 項目 | 詳細 |
+|------|------|
+| **デフォルトC++** | C++11 |
+| **C++14サポート** | ✅ 完全対応（`-std=c++14`フラグ必須） |
+| **C++17サポート** | ✅ 完全対応（`-std=c++17`フラグ） |
+| **C++20サポート** | ⚠️ 部分対応（一部機能制限あり） |
+| **コンパイラ** | GCC 5.2.0+ (xtensa-esp32) |
+| **IDE** | Arduino IDE 1.8.6+, PlatformIO |
+
 **実装済み機能:**
 - ✅ シリアル通信（UART0/1/2）
 - ✅ WiFi接続・スキャン
@@ -204,6 +214,15 @@ void loop() {
 - ESP32搭載Arduino
 - ESP8266搭載Arduino
 
+**デバイス別C++サポート:**
+
+| デバイス | MCU | デフォルトC++ | C++14サポート | C++17サポート | コンパイラ | 備考 |
+|---------|-----|------------|-------------|-------------|----------|------|
+| **Arduino Uno** | ATmega328P | C++11 | ✅ 完全対応 | ✅ 完全対応 | avr-gcc 7.3.0+ | RAM 2KB制約あり |
+| **Arduino Mega** | ATmega2560 | C++11 | ✅ 完全対応 | ✅ 完全対応 | avr-gcc 7.3.0+ | RAM 8KB |
+| **Arduino (ESP32)** | ESP32 | C++11 | ✅ 完全対応 | ✅ 完全対応 | xtensa-esp32-gcc 5.2.0+ | M5Stackと同等 |
+| **Arduino (ESP8266)** | ESP8266 | C++11 | ✅ 完全対応 | ✅ 完全対応 | xtensa-lx106-gcc 4.8.2+ | RAM 80KB |
+
 **実装予定機能:**
 - シリアル通信
 - デジタルI/O
@@ -244,6 +263,19 @@ src_filter =
 **対応予定デバイス:**
 - Raspberry Pi Pico
 - Raspberry Pi Pico W（WiFi対応）
+
+**C++サポート:**
+| 項目 | 詳細 |
+|------|------|
+| **デフォルトC++** | C++14 |
+| **C++14サポート** | ✅ 完全対応（デフォルト） |
+| **C++17サポート** | ✅ 完全対応（`-std=c++17`フラグ） |
+| **C++20サポート** | ✅ 完全対応（`-std=c++20`フラグ） |
+| **C++23サポート** | ⚠️ 部分対応（GCC 10+） |
+| **MCU** | RP2040（Cortex-M0+ デュアルコア） |
+| **コンパイラ** | arm-none-eabi-gcc 10.3.1+ |
+| **RAM** | 264KB SRAM |
+| **Flash** | 2MB（外部） |
 
 **実装予定機能:**
 - UART通信
@@ -292,6 +324,19 @@ target_link_libraries(omusubi_pico pico_stdlib)
 - STM32F4シリーズ
 - STM32F7シリーズ
 
+**C++サポート:**
+| 項目 | STM32F4 | STM32F7 |
+|------|---------|---------|
+| **デフォルトC++** | C++11 | C++11 |
+| **C++14サポート** | ✅ 完全対応 | ✅ 完全対応 |
+| **C++17サポート** | ✅ 完全対応 | ✅ 完全対応 |
+| **C++20サポート** | ✅ 完全対応 | ✅ 完全対応 |
+| **MCU** | Cortex-M4F | Cortex-M7F |
+| **コンパイラ** | arm-none-eabi-gcc 9.0+ | arm-none-eabi-gcc 9.0+ |
+| **RAM** | 128KB～256KB | 256KB～512KB |
+| **Flash** | 512KB～2MB | 1MB～2MB |
+| **FPU** | ✅ Single Precision | ✅ Double Precision |
+
 **実装状況:** 未着手（要リクエスト）
 
 リクエストがあれば対応を検討します。
@@ -306,6 +351,8 @@ target_link_libraries(omusubi_pico pico_stdlib)
 または、[GitHub Issues](https://github.com/your-org/omusubi/issues)でリクエストを作成してください。
 
 ## プラットフォーム比較表
+
+### 機能実装状況
 
 | 機能 | M5Stack | Arduino | Pico | STM32 |
 |------|---------|---------|------|-------|
@@ -325,6 +372,24 @@ target_link_libraries(omusubi_pico pico_stdlib)
 - ✅ 実装済み
 - ⏳ 実装予定
 - - 未定
+
+### C++バージョンサポート比較
+
+| プラットフォーム | デフォルト | C++14 | C++17 | C++20 | C++23 | 備考 |
+|-----------------|----------|-------|-------|-------|-------|------|
+| **M5Stack (ESP32)** | C++11 | ✅ | ✅ | ⚠️ | ❌ | `-std=c++14`フラグ必須 |
+| **Arduino Uno** | C++11 | ✅ | ✅ | ❌ | ❌ | RAM 2KB制約 |
+| **Arduino Mega** | C++11 | ✅ | ✅ | ❌ | ❌ | RAM 8KB |
+| **Arduino ESP32** | C++11 | ✅ | ✅ | ⚠️ | ❌ | M5Stackと同等 |
+| **Arduino ESP8266** | C++11 | ✅ | ✅ | ⚠️ | ❌ | RAM 80KB |
+| **Raspberry Pi Pico** | C++14 | ✅ | ✅ | ✅ | ⚠️ | デフォルトC++14 |
+| **STM32F4** | C++11 | ✅ | ✅ | ✅ | ⚠️ | 128-256KB RAM |
+| **STM32F7** | C++11 | ✅ | ✅ | ✅ | ⚠️ | 256-512KB RAM |
+
+**凡例:**
+- ✅ 完全対応
+- ⚠️ 部分対応（一部機能制限あり）
+- ❌ 非対応
 
 ## サポートリクエスト
 
@@ -347,5 +412,5 @@ target_link_libraries(omusubi_pico pico_stdlib)
 
 ---
 
-**Version:** 1.0.1
-**Last Updated:** 2025-11-16
+**Version:** 1.2.0
+**Last Updated:** 2025-11-19
