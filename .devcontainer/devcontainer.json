@@ -33,7 +33,9 @@
 				"twxs.cmake",
 				"xaver.clang-format",
 				"notskm.clang-tidy",
-				"platformio.platformio-ide"
+				"platformio.platformio-ide",
+				"mhutchie.git-graph",
+				"exiasr.hadolint"
 			],
 			"settings": {
 				"terminal.integrated.defaultProfile.linux": "bash",
