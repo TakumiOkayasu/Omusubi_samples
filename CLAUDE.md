@@ -97,7 +97,7 @@ TEST_CASE("Component - feature description") {
 
 **Test Structure:**
 - `test/` - Basic component tests (FixedString, span, format, etc.)
-- `test/core/` - Core library tests (Result, Logger, Optional)
+- `test/core/` - Core library tests (Result, Logger)
 - Use `TEST_CASE()` for main test categories
 - Use `SUBCASE()` to group related test scenarios
 
@@ -105,7 +105,7 @@ TEST_CASE("Component - feature description") {
 ```bash
 make test                    # Run all tests
 ./bin/test_<name>           # Run specific test
-./bin/test_optional --help  # Show doctest options
+./bin/test_result --help    # Show doctest options
 ```
 
 ### Assertion Guidelines

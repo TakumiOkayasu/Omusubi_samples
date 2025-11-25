@@ -1,7 +1,7 @@
 # Omusubi テスト用 Makefile
 
 CXX = clang++
-CXXFLAGS = -std=c++14 -Wall -Wextra -pedantic -I../include
+CXXFLAGS = -std=c++17 -Wall -Wextra -pedantic -I../include
 LDFLAGS =
 
 # ディレクトリ

@@ -49,7 +49,7 @@ run: $(TARGET)
 # Test targets
 # All tests now use doctest framework with DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 # Tests in test/core/ directory
-CORE_TESTS = test_optional test_result test_logger
+CORE_TESTS = test_result test_logger
 CORE_TEST_BINS = $(patsubst %,$(BIN_DIR)/%,$(CORE_TESTS))
 
 # Tests in test/ directory
@@ -77,10 +77,6 @@ $(BIN_DIR)/test_%: $(TEST_DIR)/test_%.cpp $(TEST_DIR)/doctest.h $(HEADERS)
 	$(CXX) $(CXXFLAGS) -o $@ $<
 
 # Build tests in test/core/ directory
-$(BIN_DIR)/test_optional: $(TEST_DIR)/core/test_optional.cpp $(TEST_DIR)/doctest.h $(HEADERS)
-	@mkdir -p $(BIN_DIR)
-	$(CXX) $(CXXFLAGS) -o $@ $<
-
 $(BIN_DIR)/test_result: $(TEST_DIR)/core/test_result.cpp $(TEST_DIR)/doctest.h $(HEADERS)
 	@mkdir -p $(BIN_DIR)
 	$(CXX) $(CXXFLAGS) -o $@ $<

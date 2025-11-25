@@ -122,7 +122,7 @@ TEST_DIR = test
 BIN_DIR = bin
 
 # Tests in test/core/ directory
-CORE_TESTS = test_optional test_result test_logger
+CORE_TESTS = test_result test_logger
 CORE_TEST_BINS = $(patsubst %,$(BIN_DIR)/%,$(CORE_TESTS))
 
 # Tests in test/ directory
@@ -581,5 +581,5 @@ pio run --target upload --upload-port /dev/ttyUSB0
 
 ---
 
-**Version:** 2.0.0
+**Version:** 2.0.1
 **Last Updated:** 2025-11-25

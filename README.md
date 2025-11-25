@@ -133,7 +133,7 @@ code .
 make test
 
 # 個別テストの実行
-./bin/test_optional
+./bin/test_result
 ```
 
 詳細は[CLAUDE.md](CLAUDE.md)を参照してください。

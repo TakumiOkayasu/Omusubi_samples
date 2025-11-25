@@ -220,7 +220,6 @@ test/
 ├── test_auto_capacity.cpp  # AutoCapacityのテスト
 ├── doctest.h               # doctestフレームワーク
 └── core/
-    ├── test_optional.cpp   # std::optionalのテスト
     ├── test_result.cpp     # Result<T,E>のテスト
     └── test_logger.cpp     # Loggerのテスト
 ```
@@ -617,7 +616,7 @@ make test
 # Running all tests with doctest...
 #
 # ========================================
-# Running bin/test_optional...
+# Running bin/test_result...
 # ========================================
 # [doctest] doctest version is "2.4.11"
 # [doctest] run with "--help" for options
@@ -905,5 +904,5 @@ jobs:
 
 ---
 
-**Version:** 3.0.0
+**Version:** 3.0.1
 **Last Updated:** 2025-11-25
