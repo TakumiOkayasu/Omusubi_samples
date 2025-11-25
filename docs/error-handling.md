@@ -1,6 +1,16 @@
 # エラーハンドリングガイド
 
+---
+**Version:** 1.2.0
+**Last Updated:** 2025-11-25
+---
+
 このドキュメントでは、Omusubiフレームワークにおけるエラーハンドリングの方針と実装パターンを定義します。
+
+**変更履歴:**
+- 1.2.0 (2025-11-25): Optional<T>エイリアスを削除し、std::optionalを直接使用
+- 1.1.0 (2025-11-25): Optional<T>をC++17標準std::optionalへ移行
+- 1.0.0: 初版作成
 
 ## 目次
 
@@ -71,12 +81,12 @@ Omusubiでは以下の5つのエラー通知パターンを提供します:
 1. **bool型** - 成功/失敗のみ
 2. **enum class** - エラーコードで詳細を通知
 3. **ErrorInfo構造体** - エラーコード + デバッグ情報
-4. **Optional<T>** - 値の有無を表現 (std::optional互換)
+4. **std::optional** - 値の有無を表現 (C++17標準)
 5. **Result<T, E>** - 値とエラー情報を両方返す (Rust風)
 
-### Optional<T>とResult<T, E>の使い分け
+### std::optionalとResult<T, E>の使い分け
 
-**Optional<T>を使用すべき場合:**
+**std::optionalを使用すべき場合:**
 - 「値が存在するかもしれないし、しないかもしれない」という状況
 - エラーの「理由」は重要ではなく、「値がない」という事実だけが重要
 - 検索結果、設定値取得、キャッシュ参照など、値がないことが正常な動作
@@ -88,7 +98,7 @@ Omusubiでは以下の5つのエラー通知パターンを提供します:
 
 **判断基準:**
 「失敗したとき、なぜ失敗したか知る必要がある？」
-- NO → `Optional<T>`
+- NO → `std::optional`
 - YES → `Result<T, E>`
 
 詳細な使い分け例は各パターンの説明を参照してください。
@@ -199,118 +209,44 @@ ErrorInfo connect_with_retry() {
 - デバッグ情報が必要な場合
 - エラーログに詳細を記録したい場合
 
-### Pattern 4: Optional<T> による値の有無表現
+### Pattern 4: std::optional による値の有無表現
 
-**std::optional<> と互換性のある Optional<T> を使用。**
+**C++17標準の std::optional を直接使用します。**
 
 ```cpp
-// std::optional<T> 互換の Optional<T> 実装
-template <typename T>
-class Optional {
-private:
-    alignas(T) uint8_t storage_[sizeof(T)];
-    bool has_value_;
-
-    T* ptr() { return reinterpret_cast<T*>(storage_); }
-    const T* ptr() const { return reinterpret_cast<const T*>(storage_); }
-
-public:
-    // デフォルトコンストラクタ（値なし）
-    constexpr Optional() noexcept : storage_{}, has_value_(false) {}
-
-    // 値を持つコンストラクタ
-    constexpr Optional(const T& value) noexcept : has_value_(true) {
-        new (storage_) T(value);
-    }
-
-    // ムーブコンストラクタ（C++14）
-    constexpr Optional(T&& value) noexcept : has_value_(true) {
-        new (storage_) T(static_cast<T&&>(value));
-    }
-
-    // コピーコンストラクタ
-    Optional(const Optional& other) noexcept : has_value_(other.has_value_) {
-        if (has_value_) {
-            new (storage_) T(*other.ptr());
-        }
-    }
-
-    // デストラクタ
-    ~Optional() {
-        if (has_value_) {
-            ptr()->~T();
-        }
-    }
-
-    // 代入演算子
-    Optional& operator=(const Optional& other) noexcept {
-        if (this != &other) {
-            if (has_value_) {
-                ptr()->~T();
-            }
-            has_value_ = other.has_value_;
-            if (has_value_) {
-                new (storage_) T(*other.ptr());
-            }
-        }
-        return *this;
-    }
-
-    // std::optional互換API
-    constexpr bool has_value() const noexcept { return has_value_; }
-    constexpr explicit operator bool() const noexcept { return has_value_; }
-
-    constexpr T& value() {
-        assert(has_value_);
-        return *ptr();
-    }
-
-    constexpr const T& value() const {
-        assert(has_value_);
-        return *ptr();
-    }
-
-    constexpr T value_or(const T& default_value) const {
-        return has_value_ ? *ptr() : default_value;
-    }
-
-    // ポインタ風アクセス
-    constexpr T* operator->() {
-        assert(has_value_);
-        return ptr();
-    }
-
-    constexpr const T* operator->() const {
-        assert(has_value_);
-        return ptr();
-    }
-
-    constexpr T& operator*() {
-        assert(has_value_);
-        return *ptr();
-    }
-
-    constexpr const T& operator*() const {
-        assert(has_value_);
-        return *ptr();
-    }
-
-    // リセット
-    void reset() noexcept {
-        if (has_value_) {
-            ptr()->~T();
-            has_value_ = false;
-        }
-    }
-};
+#include <optional>
 
 // 使用例
-Optional<uint32_t> read_sensor() {
+std::optional<int> opt1;         // 空
+std::optional<int> opt2(42);     // 値あり
+std::optional<int> opt3 = {};    // 空（std::nullopt相当）
+
+// 主要なAPI
+constexpr bool has_value() const noexcept;
+constexpr explicit operator bool() const noexcept;
+
+constexpr T& value();
+constexpr const T& value() const;
+constexpr T value_or(const T& default_value) const;
+
+// ポインタ風アクセス（has_value() == falseの場合は未定義動作）
+constexpr T* operator->();
+constexpr const T* operator->() const;
+constexpr T& operator*();
+constexpr const T& operator*() const;
+
+void reset() noexcept;
+void emplace(const T& value);
+void emplace(T&& value);
+```
+
+**使用例:**
+```cpp
+std::optional<uint32_t> read_sensor() {
     if (!sensor_ready()) {
-        return Optional<uint32_t>();  // 値なし
+        return {};  // 値なし（std::nullopt相当）
     }
-    uint32_t value = read_from_hardware();
-    return Optional<uint32_t>(value);  // 値あり
+    return read_from_hardware();  // 値あり
 }
 
 // 呼び出し側
@@ -334,32 +270,32 @@ uint32_t value = read_sensor().value_or(0);
 **具体例:**
 
 ```cpp
-// ✅ Optional<T> が適切な例
+// ✅ std::optional が適切な例
 
 // 検索結果（見つからない場合がある）
-Optional<uint32_t> find_device_id(StringView name) {
+std::optional<uint32_t> find_device_id(StringView name) {
     for (uint32_t i = 0; i < device_count; i++) {
         if (devices[i].name == name) {
-            return Optional<uint32_t>(i);
+            return i;  // 暗黙的に std::optional<uint32_t> に変換
         }
     }
-    return Optional<uint32_t>();  // 見つからなかった
+    return {};  // 見つからなかった（std::nullopt相当）
 }
 
 // 設定値の取得（設定されていない場合がある）
-Optional<uint32_t> get_timeout() {
+std::optional<uint32_t> get_timeout() {
     if (timeout_configured) {
-        return Optional<uint32_t>(timeout_value);
+        return timeout_value;
     }
-    return Optional<uint32_t>();  // 未設定
+    return {};  // 未設定
 }
 
 // キャッシュ参照（キャッシュミスは正常な動作）
-Optional<SensorData> get_cached_data(uint32_t id) {
+std::optional<SensorData> get_cached_data(uint32_t id) {
     if (cache_contains(id)) {
-        return Optional<SensorData>(cache[id]);
+        return cache[id];
     }
-    return Optional<SensorData>();  // キャッシュミス
+    return {};  // キャッシュミス
 }
 ```
 
