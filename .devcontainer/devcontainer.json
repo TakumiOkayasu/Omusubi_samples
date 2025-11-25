@@ -44,7 +44,7 @@
 					"--header-insertion=iwyu",
 					"--completion-style=detailed"
 				],
-				"C_Cpp.intelliSenseEngine": "disabled"
+				"C_Cpp.intelliSenseEngine": "default"
 			}
 		}
 	},
