@@ -35,6 +35,14 @@ RUN curl -LsSf https://astral.sh/uv/install.sh | sh \
     && mv /root/.local/bin/uv /usr/local/bin/uv \
     && chmod 755 /usr/local/bin/uv
 
+# doctestの最新版を取得
+RUN mkdir -p /tmp/doctest \
+    && curl -L https://api.github.com/repos/doctest/doctest/releases/latest \
+    | grep "browser_download_url.*doctest.h" \
+    | cut -d '"' -f 4 \
+    | xargs curl -L -o /tmp/doctest/doctest.h \
+    || curl -L https://raw.githubusercontent.com/doctest/doctest/master/doctest/doctest.h -o /tmp/doctest/doctest.h
+
 # 開発環境セットアップ
 COPY scripts/omusubi-dev.sh /tmp/omusubi-dev.sh
 COPY scripts/setup.sh /tmp/setup.sh

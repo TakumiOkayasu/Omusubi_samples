@@ -54,5 +54,6 @@
 	"features": {
 		"ghcr.io/devcontainers/features/docker-outside-of-docker:1": {},
 		"ghcr.io/anthropics/devcontainer-features/claude-code:1.0.5": {}
-	}
+	},
+	"postCreateCommand": "cp -f /usr/local/include/doctest/doctest.h /workspace/test/doctest.h && echo 'doctest.h copied to test/ directory'"
 }

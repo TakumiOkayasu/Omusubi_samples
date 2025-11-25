@@ -123,6 +123,19 @@ code .
 # "Reopen in Container"を選択
 ```
 
+**テストフレームワーク:**
+- **doctest** (最新版) - コンテナビルド時に自動ダウンロード
+- ヘッダーオンリー、C++17対応、例外なし環境対応
+- `test/doctest.h` として自動配置
+
+```bash
+# テストのビルドと実行
+make test
+
+# 個別テストの実行
+./bin/test_optional
+```
+
 詳細は[CLAUDE.md](CLAUDE.md)を参照してください。
 
 ## クイックスタート

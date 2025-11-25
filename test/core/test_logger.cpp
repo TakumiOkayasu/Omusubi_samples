@@ -1,12 +1,13 @@
 // Logger のユニットテスト
 
+#define DOCTEST_CONFIG_NO_EXCEPTIONS
+#define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include <omusubi/core/fixed_string.hpp>
 #include <omusubi/core/logger.hpp>
 
-#include "../test_framework.hpp"
+#include "../doctest.h"
 
 using namespace omusubi;
-using namespace test;
 
 // ========================================
 // モックLogOutput実装
@@ -52,270 +53,229 @@ public:
 // 基本的なログ出力
 // ========================================
 
-void test_logger_basic_output() {
+TEST_CASE("Logger - 基本的なログ出力") {
     MockLogOutput output;
     Logger logger(&output, LogLevel::DEBUG);
 
     logger.info(StringView("Hello", 5));
 
-    TEST_ASSERT_EQ(output.get_write_count(), 1U, "ログが1回出力された");
-    TEST_ASSERT_EQ(static_cast<uint8_t>(output.get_last_level()), static_cast<uint8_t>(LogLevel::INFO), "INFOレベルで出力");
+    CHECK_EQ(output.get_write_count(), 1U);
+    CHECK_EQ(static_cast<uint8_t>(output.get_last_level()), static_cast<uint8_t>(LogLevel::INFO));
 
-    // StringView比較
     auto msg = output.get_last_message();
-    TEST_ASSERT_EQ(msg.byte_length(), 5U, "メッセージ長が正しい");
+    CHECK_EQ(msg.byte_length(), 5U);
     bool msg_equal = (msg.data()[0] == 'H' && msg.data()[1] == 'e' && msg.data()[2] == 'l' && msg.data()[3] == 'l' && msg.data()[4] == 'o');
-    TEST_ASSERT(msg_equal, "メッセージ内容が正しい");
+    CHECK(msg_equal);
 }
 
 // ========================================
 // ログレベルフィルタリング
 // ========================================
 
-void test_logger_level_filtering_blocks_lower() {
-    MockLogOutput output;
-    Logger logger(&output, LogLevel::WARNING);
+TEST_CASE("Logger - ログレベルフィルタリング") {
+    SUBCASE("最小レベル未満はブロックされる") {
+        MockLogOutput output;
+        Logger logger(&output, LogLevel::WARNING);
 
-    logger.debug(StringView("debug", 5));
-    logger.info(StringView("info", 4));
+        logger.debug(StringView("debug", 5));
+        logger.info(StringView("info", 4));
 
-    TEST_ASSERT_EQ(output.get_write_count(), 0U, "WARNINGレベル以下は出力されない");
-}
+        CHECK_EQ(output.get_write_count(), 0U);
+    }
 
-void test_logger_level_filtering_allows_higher() {
-    MockLogOutput output;
-    Logger logger(&output, LogLevel::WARNING);
+    SUBCASE("最小レベル以上は出力される") {
+        MockLogOutput output;
+        Logger logger(&output, LogLevel::WARNING);
 
-    logger.warning(StringView("warn", 4));
-    logger.error(StringView("error", 5));
-    logger.critical(StringView("crit", 4));
+        logger.warning(StringView("warn", 4));
+        logger.error(StringView("error", 5));
+        logger.critical(StringView("crit", 4));
 
-    TEST_ASSERT_EQ(output.get_write_count(), 3U, "WARNING以上は出力される");
+        CHECK_EQ(output.get_write_count(), 3U);
+    }
 }
 
 // ========================================
 // 各ログレベルメソッド
 // ========================================
 
-void test_logger_debug_method() {
-    MockLogOutput output;
-    Logger logger(&output, LogLevel::DEBUG);
+TEST_CASE("Logger - 各ログレベルメソッド") {
+    SUBCASE("debug()") {
+        MockLogOutput output;
+        Logger logger(&output, LogLevel::DEBUG);
 
-    logger.debug(StringView("debug message", 13));
+        logger.debug(StringView("debug message", 13));
 
-    TEST_ASSERT_EQ(static_cast<uint8_t>(output.get_last_level()), static_cast<uint8_t>(LogLevel::DEBUG), "DEBUGレベル");
-    TEST_ASSERT_EQ(output.get_write_count(), 1U, "1回出力");
-}
+        CHECK_EQ(static_cast<uint8_t>(output.get_last_level()), static_cast<uint8_t>(LogLevel::DEBUG));
+        CHECK_EQ(output.get_write_count(), 1U);
+    }
 
-void test_logger_info_method() {
-    MockLogOutput output;
-    Logger logger(&output, LogLevel::DEBUG);
+    SUBCASE("info()") {
+        MockLogOutput output;
+        Logger logger(&output, LogLevel::DEBUG);
 
-    logger.info(StringView("info message", 12));
+        logger.info(StringView("info message", 12));
 
-    TEST_ASSERT_EQ(static_cast<uint8_t>(output.get_last_level()), static_cast<uint8_t>(LogLevel::INFO), "INFOレベル");
-    TEST_ASSERT_EQ(output.get_write_count(), 1U, "1回出力");
-}
+        CHECK_EQ(static_cast<uint8_t>(output.get_last_level()), static_cast<uint8_t>(LogLevel::INFO));
+        CHECK_EQ(output.get_write_count(), 1U);
+    }
 
-void test_logger_warning_method() {
-    MockLogOutput output;
-    Logger logger(&output, LogLevel::DEBUG);
+    SUBCASE("warning()") {
+        MockLogOutput output;
+        Logger logger(&output, LogLevel::DEBUG);
 
-    logger.warning(StringView("warning message", 15));
+        logger.warning(StringView("warning message", 15));
 
-    TEST_ASSERT_EQ(static_cast<uint8_t>(output.get_last_level()), static_cast<uint8_t>(LogLevel::WARNING), "WARNINGレベル");
-    TEST_ASSERT_EQ(output.get_write_count(), 1U, "1回出力");
-}
+        CHECK_EQ(static_cast<uint8_t>(output.get_last_level()), static_cast<uint8_t>(LogLevel::WARNING));
+        CHECK_EQ(output.get_write_count(), 1U);
+    }
 
-void test_logger_error_method() {
-    MockLogOutput output;
-    Logger logger(&output, LogLevel::DEBUG);
+    SUBCASE("error()") {
+        MockLogOutput output;
+        Logger logger(&output, LogLevel::DEBUG);
 
-    logger.error(StringView("error message", 13));
+        logger.error(StringView("error message", 13));
 
-    TEST_ASSERT_EQ(static_cast<uint8_t>(output.get_last_level()), static_cast<uint8_t>(LogLevel::ERROR), "ERRORレベル");
-    TEST_ASSERT_EQ(output.get_write_count(), 1U, "1回出力");
-}
+        CHECK_EQ(static_cast<uint8_t>(output.get_last_level()), static_cast<uint8_t>(LogLevel::ERROR));
+        CHECK_EQ(output.get_write_count(), 1U);
+    }
 
-void test_logger_critical_method() {
-    MockLogOutput output;
-    Logger logger(&output, LogLevel::DEBUG);
+    SUBCASE("critical()") {
+        MockLogOutput output;
+        Logger logger(&output, LogLevel::DEBUG);
 
-    logger.critical(StringView("critical message", 16));
+        logger.critical(StringView("critical message", 16));
 
-    TEST_ASSERT_EQ(static_cast<uint8_t>(output.get_last_level()), static_cast<uint8_t>(LogLevel::CRITICAL), "CRITICALレベル");
-    TEST_ASSERT_EQ(output.get_write_count(), 1U, "1回出力");
+        CHECK_EQ(static_cast<uint8_t>(output.get_last_level()), static_cast<uint8_t>(LogLevel::CRITICAL));
+        CHECK_EQ(output.get_write_count(), 1U);
+    }
 }
 
 // ========================================
 // 最小ログレベル変更
 // ========================================
 
-void test_logger_set_min_level() {
+TEST_CASE("Logger - 最小ログレベル変更") {
     MockLogOutput output;
     Logger logger(&output, LogLevel::DEBUG);
 
-    TEST_ASSERT_EQ(static_cast<uint8_t>(logger.get_min_level()), static_cast<uint8_t>(LogLevel::DEBUG), "初期レベルはDEBUG");
+    CHECK_EQ(static_cast<uint8_t>(logger.get_min_level()), static_cast<uint8_t>(LogLevel::DEBUG));
 
     logger.set_min_level(LogLevel::ERROR);
-    TEST_ASSERT_EQ(static_cast<uint8_t>(logger.get_min_level()), static_cast<uint8_t>(LogLevel::ERROR), "レベルをERRORに変更");
+    CHECK_EQ(static_cast<uint8_t>(logger.get_min_level()), static_cast<uint8_t>(LogLevel::ERROR));
 
     logger.info(StringView("info", 4));
-    TEST_ASSERT_EQ(output.get_write_count(), 0U, "INFOは出力されない");
+    CHECK_EQ(output.get_write_count(), 0U);
 
     logger.error(StringView("error", 5));
-    TEST_ASSERT_EQ(output.get_write_count(), 1U, "ERRORは出力される");
+    CHECK_EQ(output.get_write_count(), 1U);
 }
 
 // ========================================
 // nullptr出力先
 // ========================================
 
-void test_logger_null_output() {
+TEST_CASE("Logger - nullptr出力先") {
     Logger logger(nullptr, LogLevel::DEBUG);
 
-    // クラッシュせずに完了すればOK
     logger.info(StringView("test", 4));
     logger.flush();
 
-    TEST_ASSERT(true, "nullptr出力でもクラッシュしない");
+    CHECK(true);
 }
 
 // ========================================
 // flush() メソッド
 // ========================================
 
-void test_logger_flush() {
+TEST_CASE("Logger - flush() メソッド") {
     MockLogOutput output;
     Logger logger(&output, LogLevel::DEBUG);
 
     logger.flush();
-    TEST_ASSERT_EQ(output.get_flush_count(), 1U, "flushが呼ばれた");
+    CHECK_EQ(output.get_flush_count(), 1U);
 
     logger.flush();
     logger.flush();
-    TEST_ASSERT_EQ(output.get_flush_count(), 3U, "複数回flush可能");
+    CHECK_EQ(output.get_flush_count(), 3U);
 }
 
 // ========================================
 // log_level_to_string() 関数
 // ========================================
 
-void test_log_level_to_string_debug() {
-    auto str = log_level_to_string(LogLevel::DEBUG);
-    TEST_ASSERT_EQ(str.byte_length(), 5U, "DEBUG文字列長");
-    bool equal = (str.data()[0] == 'D' && str.data()[1] == 'E' && str.data()[2] == 'B' && str.data()[3] == 'U' && str.data()[4] == 'G');
-    TEST_ASSERT(equal, "DEBUG文字列内容");
-}
+TEST_CASE("Logger - log_level_to_string()") {
+    SUBCASE("DEBUG") {
+        auto str = log_level_to_string(LogLevel::DEBUG);
+        CHECK_EQ(str.byte_length(), 5U);
+        bool equal = (str.data()[0] == 'D' && str.data()[1] == 'E' && str.data()[2] == 'B' && str.data()[3] == 'U' && str.data()[4] == 'G');
+        CHECK(equal);
+    }
 
-void test_log_level_to_string_info() {
-    auto str = log_level_to_string(LogLevel::INFO);
-    TEST_ASSERT_EQ(str.byte_length(), 4U, "INFO文字列長");
-    bool equal = (str.data()[0] == 'I' && str.data()[1] == 'N' && str.data()[2] == 'F' && str.data()[3] == 'O');
-    TEST_ASSERT(equal, "INFO文字列内容");
-}
+    SUBCASE("INFO") {
+        auto str = log_level_to_string(LogLevel::INFO);
+        CHECK_EQ(str.byte_length(), 4U);
+        bool equal = (str.data()[0] == 'I' && str.data()[1] == 'N' && str.data()[2] == 'F' && str.data()[3] == 'O');
+        CHECK(equal);
+    }
 
-void test_log_level_to_string_warning() {
-    auto str = log_level_to_string(LogLevel::WARNING);
-    TEST_ASSERT_EQ(str.byte_length(), 4U, "WARN文字列長");
-    bool equal = (str.data()[0] == 'W' && str.data()[1] == 'A' && str.data()[2] == 'R' && str.data()[3] == 'N');
-    TEST_ASSERT(equal, "WARN文字列内容");
-}
+    SUBCASE("WARNING") {
+        auto str = log_level_to_string(LogLevel::WARNING);
+        CHECK_EQ(str.byte_length(), 4U);
+        bool equal = (str.data()[0] == 'W' && str.data()[1] == 'A' && str.data()[2] == 'R' && str.data()[3] == 'N');
+        CHECK(equal);
+    }
 
-void test_log_level_to_string_error() {
-    auto str = log_level_to_string(LogLevel::ERROR);
-    TEST_ASSERT_EQ(str.byte_length(), 5U, "ERROR文字列長");
-    bool equal = (str.data()[0] == 'E' && str.data()[1] == 'R' && str.data()[2] == 'R' && str.data()[3] == 'O' && str.data()[4] == 'R');
-    TEST_ASSERT(equal, "ERROR文字列内容");
-}
+    SUBCASE("ERROR") {
+        auto str = log_level_to_string(LogLevel::ERROR);
+        CHECK_EQ(str.byte_length(), 5U);
+        bool equal = (str.data()[0] == 'E' && str.data()[1] == 'R' && str.data()[2] == 'R' && str.data()[3] == 'O' && str.data()[4] == 'R');
+        CHECK(equal);
+    }
 
-void test_log_level_to_string_critical() {
-    auto str = log_level_to_string(LogLevel::CRITICAL);
-    TEST_ASSERT_EQ(str.byte_length(), 4U, "CRIT文字列長");
-    bool equal = (str.data()[0] == 'C' && str.data()[1] == 'R' && str.data()[2] == 'I' && str.data()[3] == 'T');
-    TEST_ASSERT(equal, "CRIT文字列内容");
+    SUBCASE("CRITICAL") {
+        auto str = log_level_to_string(LogLevel::CRITICAL);
+        CHECK_EQ(str.byte_length(), 4U);
+        bool equal = (str.data()[0] == 'C' && str.data()[1] == 'R' && str.data()[2] == 'I' && str.data()[3] == 'T');
+        CHECK(equal);
+    }
 }
 
 // ========================================
 // log_at<Level>() テンプレート関数
 // ========================================
 
-void test_log_at_info() {
-    MockLogOutput output;
-    Logger logger(&output, LogLevel::DEBUG);
+TEST_CASE("Logger - log_at<Level>() テンプレート関数") {
+    SUBCASE("log_at<INFO>") {
+        MockLogOutput output;
+        Logger logger(&output, LogLevel::DEBUG);
 
-    log_at<LogLevel::INFO>(logger, StringView("template log", 12));
+        log_at<LogLevel::INFO>(logger, StringView("template log", 12));
 
-    TEST_ASSERT_EQ(output.get_write_count(), 1U, "log_at<INFO>で出力");
-    TEST_ASSERT_EQ(static_cast<uint8_t>(output.get_last_level()), static_cast<uint8_t>(LogLevel::INFO), "INFOレベル");
-}
+        CHECK_EQ(output.get_write_count(), 1U);
+        CHECK_EQ(static_cast<uint8_t>(output.get_last_level()), static_cast<uint8_t>(LogLevel::INFO));
+    }
 
-void test_log_at_error() {
-    MockLogOutput output;
-    Logger logger(&output, LogLevel::DEBUG);
+    SUBCASE("log_at<ERROR>") {
+        MockLogOutput output;
+        Logger logger(&output, LogLevel::DEBUG);
 
-    log_at<LogLevel::ERROR>(logger, StringView("error log", 9));
+        log_at<LogLevel::ERROR>(logger, StringView("error log", 9));
 
-    TEST_ASSERT_EQ(output.get_write_count(), 1U, "log_at<ERROR>で出力");
-    TEST_ASSERT_EQ(static_cast<uint8_t>(output.get_last_level()), static_cast<uint8_t>(LogLevel::ERROR), "ERRORレベル");
-}
+        CHECK_EQ(output.get_write_count(), 1U);
+        CHECK_EQ(static_cast<uint8_t>(output.get_last_level()), static_cast<uint8_t>(LogLevel::ERROR));
+    }
 
-// ========================================
-// log_at<DEBUG>() のフィルタリング（デバッグビルド時のみ）
-// ========================================
+    SUBCASE("log_at<DEBUG> デバッグビルド依存") {
+        MockLogOutput output;
+        Logger logger(&output, LogLevel::DEBUG);
 
-void test_log_at_debug_in_debug_build() {
-    MockLogOutput output;
-    Logger logger(&output, LogLevel::DEBUG);
-
-    log_at<LogLevel::DEBUG>(logger, StringView("debug log", 9));
+        log_at<LogLevel::DEBUG>(logger, StringView("debug log", 9));
 
 #ifdef NDEBUG
-    // リリースビルドではDEBUGログは削除される
-    TEST_ASSERT_EQ(output.get_write_count(), 0U, "リリースビルド: DEBUGログ削除");
+        CHECK_EQ(output.get_write_count(), 0U);
 #else
-    // デバッグビルドではDEBUGログが出力される
-    TEST_ASSERT_EQ(output.get_write_count(), 1U, "デバッグビルド: DEBUGログ出力");
+        CHECK_EQ(output.get_write_count(), 1U);
 #endif
-}
-
-int main() {
-    begin_tests("Logger");
-
-    // 基本出力
-    test_logger_basic_output();
-
-    // レベルフィルタリング
-    test_logger_level_filtering_blocks_lower();
-    test_logger_level_filtering_allows_higher();
-
-    // 各ログレベルメソッド
-    test_logger_debug_method();
-    test_logger_info_method();
-    test_logger_warning_method();
-    test_logger_error_method();
-    test_logger_critical_method();
-
-    // 最小レベル変更
-    test_logger_set_min_level();
-
-    // nullptr出力
-    test_logger_null_output();
-
-    // flush
-    test_logger_flush();
-
-    // log_level_to_string
-    test_log_level_to_string_debug();
-    test_log_level_to_string_info();
-    test_log_level_to_string_warning();
-    test_log_level_to_string_error();
-    test_log_level_to_string_critical();
-
-    // log_at
-    test_log_at_info();
-    test_log_at_error();
-    test_log_at_debug_in_debug_build();
-
-    return end_tests();
+    }
 }

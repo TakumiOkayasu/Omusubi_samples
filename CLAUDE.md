@@ -33,6 +33,113 @@ make              # Build
 make clean        # Clean
 make rebuild      # Rebuild from scratch
 make run          # Build and run
+make tests        # Build all tests
+make test         # Build and run all tests
+```
+
+## Testing Framework
+
+**Using doctest (latest)** - Fast, header-only C++ testing framework
+
+### Key Features
+- **Header-only**: Single file `test/doctest.h`
+- **No exceptions**: `DOCTEST_CONFIG_NO_EXCEPTIONS` enabled
+- **C++17 compatible**: Fully supports modern C++17 features
+- **Fast compilation**: Minimal compile-time overhead
+- **Rich assertions**: `CHECK()`, `CHECK_EQ()`, `CHECK_FALSE()`, etc.
+- **Auto-update**: Latest version automatically downloaded during Docker build
+
+### doctest Installation
+
+**Automatic (Recommended):**
+- Latest doctest is automatically downloaded during devcontainer build
+- Located at `/usr/local/include/doctest/doctest.h` in container
+- Copied to `test/doctest.h` on container startup via `postCreateCommand`
+
+**Manual Update:**
+```bash
+# Update to latest version manually
+curl -L https://raw.githubusercontent.com/doctest/doctest/master/doctest/doctest.h -o test/doctest.h
+```
+
+**Docker Build Process:**
+1. Dockerfile downloads latest doctest from GitHub releases
+2. Falls back to master branch if release API fails
+3. Installed to `/usr/local/include/doctest/` during setup
+4. Copied to workspace `test/` directory on container creation
+
+### Writing Tests
+
+```cpp
+#define DOCTEST_CONFIG_NO_EXCEPTIONS
+#define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
+#include "doctest.h"  // or "../doctest.h" for test/core/
+
+#include <omusubi/omusubi.h>
+
+TEST_CASE("Component - feature description") {
+    // Setup
+    auto result = some_function();
+
+    // Assertions
+    CHECK(result.is_ok());
+    CHECK_EQ(result.value(), 42);
+    CHECK_FALSE(result.is_err());
+
+    // Subcases for related tests
+    SUBCASE("specific scenario") {
+        CHECK(condition);
+    }
+}
+```
+
+### Test Organization
+
+**Test Structure:**
+- `test/` - Basic component tests (FixedString, span, format, etc.)
+- `test/core/` - Core library tests (Result, Logger, Optional)
+- Use `TEST_CASE()` for main test categories
+- Use `SUBCASE()` to group related test scenarios
+
+**Running Tests:**
+```bash
+make test                    # Run all tests
+./bin/test_<name>           # Run specific test
+./bin/test_optional --help  # Show doctest options
+```
+
+### Assertion Guidelines
+
+- `CHECK(expr)` - Verify condition (continues on failure)
+- `CHECK_EQ(a, b)` - Verify equality
+- `CHECK_FALSE(expr)` - Verify condition is false
+- `REQUIRE(expr)` - Verify condition (stops on failure)
+- Use descriptive TEST_CASE names in Japanese or English
+
+### Test File Template
+
+```cpp
+#define DOCTEST_CONFIG_NO_EXCEPTIONS
+#define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
+#include "doctest.h"
+
+#include <omusubi/core/your_component.hpp>
+
+using namespace omusubi;
+
+TEST_CASE("YourComponent - 基本機能") {
+    YourComponent comp;
+
+    SUBCASE("初期化") {
+        CHECK(comp.is_initialized());
+    }
+
+    SUBCASE("操作") {
+        auto result = comp.do_something();
+        CHECK(result.is_ok());
+        CHECK_EQ(result.value(), expected_value);
+    }
+}
 ```
 
 ## Code Quality

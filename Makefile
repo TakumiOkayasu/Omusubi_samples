@@ -47,13 +47,17 @@ run: $(TARGET)
 	./$(TARGET)
 
 # Test targets
-# Standalone tests (have main() in global scope)
-STANDALONE_TESTS = test_auto_capacity test_format test_format_string
-STANDALONE_TEST_BINS = $(patsubst %,$(BIN_DIR)/%,$(STANDALONE_TESTS))
+# All tests now use doctest framework with DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
+# Tests in test/core/ directory
+CORE_TESTS = test_optional test_result test_logger
+CORE_TEST_BINS = $(patsubst %,$(BIN_DIR)/%,$(CORE_TESTS))
 
-# test_all.cpp requires linking multiple test files (not included in standalone builds)
-# test_span, test_string_view, test_fixed_buffer, test_fixed_string, test_vector3
-# have main() in namespace scope and are designed to be linked with test_all.cpp
+# Tests in test/ directory
+BASIC_TESTS = test_auto_capacity test_format test_format_string test_fixed_string test_fixed_buffer test_span test_string_view test_vector3
+BASIC_TEST_BINS = $(patsubst %,$(BIN_DIR)/%,$(BASIC_TESTS))
+
+# All test binaries
+ALL_TEST_BINS = $(CORE_TEST_BINS) $(BASIC_TEST_BINS)
 
 # Example targets
 # Only build examples with standard suffixes (_demo, _example)
@@ -61,14 +65,27 @@ EXAMPLE_DEMO_SRCS = $(wildcard $(EXAMPLE_DIR)/*_demo.cpp)
 EXAMPLE_EXAMPLE_SRCS = $(wildcard $(EXAMPLE_DIR)/*_example.cpp)
 EXAMPLE_BINS = $(patsubst $(EXAMPLE_DIR)/%.cpp,$(BIN_DIR)/%,$(EXAMPLE_DEMO_SRCS) $(EXAMPLE_EXAMPLE_SRCS))
 
-# Build all standalone tests
-tests: $(STANDALONE_TEST_BINS)
+# Build all tests
+tests: $(ALL_TEST_BINS)
 
 # Build all examples
 examples: $(EXAMPLE_BINS)
 
-# Build individual test
-$(BIN_DIR)/test_%: $(TEST_DIR)/test_%.cpp $(HEADERS)
+# Build tests in test/ directory
+$(BIN_DIR)/test_%: $(TEST_DIR)/test_%.cpp $(TEST_DIR)/doctest.h $(HEADERS)
+	@mkdir -p $(BIN_DIR)
+	$(CXX) $(CXXFLAGS) -o $@ $<
+
+# Build tests in test/core/ directory
+$(BIN_DIR)/test_optional: $(TEST_DIR)/core/test_optional.cpp $(TEST_DIR)/doctest.h $(HEADERS)
+	@mkdir -p $(BIN_DIR)
+	$(CXX) $(CXXFLAGS) -o $@ $<
+
+$(BIN_DIR)/test_result: $(TEST_DIR)/core/test_result.cpp $(TEST_DIR)/doctest.h $(HEADERS)
+	@mkdir -p $(BIN_DIR)
+	$(CXX) $(CXXFLAGS) -o $@ $<
+
+$(BIN_DIR)/test_logger: $(TEST_DIR)/core/test_logger.cpp $(TEST_DIR)/doctest.h $(HEADERS)
 	@mkdir -p $(BIN_DIR)
 	$(CXX) $(CXXFLAGS) -o $@ $<
 
@@ -83,10 +100,18 @@ $(BIN_DIR)/%_example: $(EXAMPLE_DIR)/%_example.cpp $(HEADERS)
 
 # Run all tests
 test: tests
-	@for test in $(STANDALONE_TEST_BINS); do \
+	@echo "Running all tests with doctest..."
+	@for test in $(ALL_TEST_BINS); do \
+		echo ""; \
+		echo "========================================"; \
 		echo "Running $$test..."; \
+		echo "========================================"; \
 		$$test || exit 1; \
 	done
+	@echo ""
+	@echo "========================================"
+	@echo "All tests passed successfully!"
+	@echo "========================================"
 
 # Clean test and example binaries
 clean-tests:

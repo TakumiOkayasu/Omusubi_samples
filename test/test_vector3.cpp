@@ -1,115 +1,97 @@
 // Vector3 の単体テスト
 
+#define DOCTEST_CONFIG_NO_EXCEPTIONS
+#define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include <omusubi/core/types.h>
 
-#include "test_framework.hpp"
-
-namespace vector3_test {
+#include "doctest.h"
 
 using namespace omusubi;
-using namespace test;
 
-void test_vector3_basic() {
-    test_section("基本機能");
+TEST_CASE("Vector3 - 基本機能") {
+    SUBCASE("デフォルトコンストラクタ") {
+        Vector3 v1;
+        CHECK(doctest::Approx(v1.x).epsilon(0.001) == 0.0f);
+        CHECK(doctest::Approx(v1.y).epsilon(0.001) == 0.0f);
+        CHECK(doctest::Approx(v1.z).epsilon(0.001) == 0.0f);
+    }
 
-    // デフォルトコンストラクタ
-    Vector3 v1;
-    TEST_ASSERT_FLOAT_EQ(v1.x, 0.0f, 0.001f, "デフォルトコンストラクタ x = 0");
-    TEST_ASSERT_FLOAT_EQ(v1.y, 0.0f, 0.001f, "デフォルトコンストラクタ y = 0");
-    TEST_ASSERT_FLOAT_EQ(v1.z, 0.0f, 0.001f, "デフォルトコンストラクタ z = 0");
-
-    // 値指定コンストラクタ
-    Vector3 v2(1.0f, 2.0f, 3.0f);
-    TEST_ASSERT_FLOAT_EQ(v2.x, 1.0f, 0.001f, "値指定コンストラクタ x = 1.0");
-    TEST_ASSERT_FLOAT_EQ(v2.y, 2.0f, 0.001f, "値指定コンストラクタ y = 2.0");
-    TEST_ASSERT_FLOAT_EQ(v2.z, 3.0f, 0.001f, "値指定コンストラクタ z = 3.0");
+    SUBCASE("値指定コンストラクタ") {
+        Vector3 v2(1.0f, 2.0f, 3.0f);
+        CHECK(doctest::Approx(v2.x).epsilon(0.001) == 1.0f);
+        CHECK(doctest::Approx(v2.y).epsilon(0.001) == 2.0f);
+        CHECK(doctest::Approx(v2.z).epsilon(0.001) == 3.0f);
+    }
 }
 
-void test_vector3_constexpr() {
-    test_section("constexpr対応");
-
-    // コンパイル時定数として使用可能
+TEST_CASE("Vector3 - constexpr対応") {
     constexpr Vector3 v1;
     constexpr Vector3 v2(1.0f, 2.0f, 3.0f);
 
-    TEST_ASSERT_FLOAT_EQ(v1.x, 0.0f, 0.001f, "constexpr デフォルト x");
-    TEST_ASSERT_FLOAT_EQ(v2.x, 1.0f, 0.001f, "constexpr 値指定 x");
-    TEST_ASSERT_FLOAT_EQ(v2.y, 2.0f, 0.001f, "constexpr 値指定 y");
-    TEST_ASSERT_FLOAT_EQ(v2.z, 3.0f, 0.001f, "constexpr 値指定 z");
+    CHECK(doctest::Approx(v1.x).epsilon(0.001) == 0.0f);
+    CHECK(doctest::Approx(v2.x).epsilon(0.001) == 1.0f);
+    CHECK(doctest::Approx(v2.y).epsilon(0.001) == 2.0f);
+    CHECK(doctest::Approx(v2.z).epsilon(0.001) == 3.0f);
 }
 
-void test_vector3_assignment() {
-    test_section("代入操作");
-
+TEST_CASE("Vector3 - 代入操作") {
     Vector3 v1(1.0f, 2.0f, 3.0f);
     Vector3 v2;
 
-    // コピー代入
-    v2 = v1;
-    TEST_ASSERT_FLOAT_EQ(v2.x, 1.0f, 0.001f, "コピー代入 x");
-    TEST_ASSERT_FLOAT_EQ(v2.y, 2.0f, 0.001f, "コピー代入 y");
-    TEST_ASSERT_FLOAT_EQ(v2.z, 3.0f, 0.001f, "コピー代入 z");
+    SUBCASE("コピー代入") {
+        v2 = v1;
+        CHECK(doctest::Approx(v2.x).epsilon(0.001) == 1.0f);
+        CHECK(doctest::Approx(v2.y).epsilon(0.001) == 2.0f);
+        CHECK(doctest::Approx(v2.z).epsilon(0.001) == 3.0f);
+    }
 
-    // 個別の値変更
-    v2.x = 10.0f;
-    v2.y = 20.0f;
-    v2.z = 30.0f;
-    TEST_ASSERT_FLOAT_EQ(v2.x, 10.0f, 0.001f, "個別変更 x");
-    TEST_ASSERT_FLOAT_EQ(v2.y, 20.0f, 0.001f, "個別変更 y");
-    TEST_ASSERT_FLOAT_EQ(v2.z, 30.0f, 0.001f, "個別変更 z");
+    SUBCASE("個別の値変更") {
+        v2.x = 10.0f;
+        v2.y = 20.0f;
+        v2.z = 30.0f;
+        CHECK(doctest::Approx(v2.x).epsilon(0.001) == 10.0f);
+        CHECK(doctest::Approx(v2.y).epsilon(0.001) == 20.0f);
+        CHECK(doctest::Approx(v2.z).epsilon(0.001) == 30.0f);
+    }
 }
 
-void test_vector3_sensor_use_case() {
-    test_section("センサーデータのユースケース");
+TEST_CASE("Vector3 - センサーデータのユースケース") {
+    SUBCASE("加速度センサーのデータ") {
+        Vector3 accel(0.0f, 0.0f, 9.81f);
+        CHECK(doctest::Approx(accel.z).epsilon(0.01) == 9.81f);
+    }
 
-    // 加速度センサーのデータ
-    Vector3 accel(0.0f, 0.0f, 9.81f); // 重力加速度
-    TEST_ASSERT_FLOAT_EQ(accel.z, 9.81f, 0.01f, "重力加速度のz成分");
+    SUBCASE("ジャイロセンサーのデータ") {
+        Vector3 gyro(0.1f, -0.2f, 0.05f);
+        CHECK(doctest::Approx(gyro.x).epsilon(0.001) == 0.1f);
+        CHECK(doctest::Approx(gyro.y).epsilon(0.001) == -0.2f);
+    }
 
-    // ジャイロセンサーのデータ
-    Vector3 gyro(0.1f, -0.2f, 0.05f); // 回転速度
-    TEST_ASSERT_FLOAT_EQ(gyro.x, 0.1f, 0.001f, "ジャイロx成分");
-    TEST_ASSERT_FLOAT_EQ(gyro.y, -0.2f, 0.001f, "ジャイロy成分（負の値）");
-
-    // 磁気センサーのデータ
-    Vector3 mag(25.5f, -10.3f, 40.2f);
-    TEST_ASSERT_FLOAT_EQ(mag.x, 25.5f, 0.01f, "磁気センサーx成分");
+    SUBCASE("磁気センサーのデータ") {
+        Vector3 mag(25.5f, -10.3f, 40.2f);
+        CHECK(doctest::Approx(mag.x).epsilon(0.01) == 25.5f);
+    }
 }
 
-void test_vector3_negative_values() {
-    test_section("負の値のテスト");
-
+TEST_CASE("Vector3 - 負の値のテスト") {
     Vector3 v(-1.0f, -2.0f, -3.0f);
-    TEST_ASSERT_FLOAT_EQ(v.x, -1.0f, 0.001f, "負の値 x");
-    TEST_ASSERT_FLOAT_EQ(v.y, -2.0f, 0.001f, "負の値 y");
-    TEST_ASSERT_FLOAT_EQ(v.z, -3.0f, 0.001f, "負の値 z");
+    CHECK(doctest::Approx(v.x).epsilon(0.001) == -1.0f);
+    CHECK(doctest::Approx(v.y).epsilon(0.001) == -2.0f);
+    CHECK(doctest::Approx(v.z).epsilon(0.001) == -3.0f);
 }
 
-void test_vector3_zero_and_small_values() {
-    test_section("ゼロと極小値");
+TEST_CASE("Vector3 - ゼロと極小値") {
+    SUBCASE("ゼロベクトル") {
+        Vector3 v1(0.0f, 0.0f, 0.0f);
+        CHECK(doctest::Approx(v1.x).epsilon(0.001) == 0.0f);
+        CHECK(doctest::Approx(v1.y).epsilon(0.001) == 0.0f);
+        CHECK(doctest::Approx(v1.z).epsilon(0.001) == 0.0f);
+    }
 
-    Vector3 v1(0.0f, 0.0f, 0.0f);
-    TEST_ASSERT_FLOAT_EQ(v1.x, 0.0f, 0.001f, "ゼロベクトル x");
-    TEST_ASSERT_FLOAT_EQ(v1.y, 0.0f, 0.001f, "ゼロベクトル y");
-    TEST_ASSERT_FLOAT_EQ(v1.z, 0.0f, 0.001f, "ゼロベクトル z");
-
-    Vector3 v2(0.001f, 0.002f, 0.003f);
-    TEST_ASSERT_FLOAT_EQ(v2.x, 0.001f, 0.0001f, "極小値 x");
-    TEST_ASSERT_FLOAT_EQ(v2.y, 0.002f, 0.0001f, "極小値 y");
-    TEST_ASSERT_FLOAT_EQ(v2.z, 0.003f, 0.0001f, "極小値 z");
+    SUBCASE("極小値") {
+        Vector3 v2(0.001f, 0.002f, 0.003f);
+        CHECK(doctest::Approx(v2.x).epsilon(0.0001) == 0.001f);
+        CHECK(doctest::Approx(v2.y).epsilon(0.0001) == 0.002f);
+        CHECK(doctest::Approx(v2.z).epsilon(0.0001) == 0.003f);
+    }
 }
-
-int main() {
-    begin_tests("Vector3");
-
-    test_vector3_basic();
-    test_vector3_constexpr();
-    test_vector3_assignment();
-    test_vector3_sensor_use_case();
-    test_vector3_negative_values();
-    test_vector3_zero_and_small_values();
-
-    return end_tests();
-}
-
-} // namespace vector3_test
