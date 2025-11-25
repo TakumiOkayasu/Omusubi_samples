@@ -52,7 +52,7 @@ while IFS= read -r file; do
     fi
 
     # Run clang-tidy and capture output
-    OUTPUT=$(clang-tidy "$file" -- -Iinclude -std=c++14 $LANG_FLAG 2>&1 || true)
+    OUTPUT=$(clang-tidy "$file" -- -Iinclude -std=c++17 $LANG_FLAG 2>&1 || true)
 
     # Count errors and warnings in this file
     FILE_ERRORS=$(echo "$OUTPUT" | grep -c "error:" || true)

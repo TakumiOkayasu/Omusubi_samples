@@ -28,13 +28,13 @@ public:
     virtual void stop_scan() = 0;
 
     /** @brief 発見されたデバイス数を取得 */
-    virtual uint8_t get_found_count() const = 0;
+    [[nodiscard]] virtual uint8_t get_found_count() const = 0;
 
     /** @brief 発見されたデバイス名を取得（Java String相当） */
-    virtual std::string_view get_found_name(uint8_t index) const = 0;
+    [[nodiscard]] virtual std::string_view get_found_name(uint8_t index) const = 0;
 
     /** @brief 発見されたデバイスの信号強度を取得 */
-    virtual int32_t get_found_signal_strength(uint8_t index) const = 0;
+    [[nodiscard]] virtual int32_t get_found_signal_strength(uint8_t index) const = 0;
 };
 
 } // namespace omusubi

@@ -17,7 +17,7 @@ public:
     Pressable& operator=(Pressable&&) = delete;
 
     /** @brief ボタン状態を取得 */
-    virtual ButtonState get_state() const = 0;
+    [[nodiscard]] virtual ButtonState get_state() const = 0;
 };
 
 } // namespace omusubi

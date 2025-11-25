@@ -15,15 +15,15 @@ namespace omusubi {
 template <uint32_t N>
 class StaticString : public String<StaticString<N>> {
 public:
-    constexpr uint32_t size() const noexcept { return N; }
+    [[nodiscard]] constexpr uint32_t size() const noexcept { return N; }
 
-    constexpr uint32_t byte_length() const noexcept { return N; }
+    [[nodiscard]] constexpr uint32_t byte_length() const noexcept { return N; }
 
-    constexpr const char* data() const noexcept { return data_; }
+    [[nodiscard]] constexpr const char* data() const noexcept { return data_; }
 
-    constexpr char* data() noexcept { return data_; }
+    [[nodiscard]] constexpr char* data() noexcept { return data_; }
 
-    constexpr const char* c_str() const noexcept { return data_; }
+    [[nodiscard]] constexpr const char* c_str() const noexcept { return data_; }
 
     constexpr char operator[](uint32_t index) const noexcept { return data_[index]; }
 

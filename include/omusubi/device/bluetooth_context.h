@@ -21,7 +21,7 @@ public:
 
     // ByteReadable interface
     size_t read(span<uint8_t> buffer) override = 0;
-    size_t available() const override = 0;
+    [[nodiscard]] size_t available() const override = 0;
 
     // TextReadable interface
     size_t read_line(span<char> buffer) override = 0;
@@ -35,14 +35,14 @@ public:
     // Connectable interface
     bool connect() override = 0;
     void disconnect() override = 0;
-    bool is_connected() const override = 0;
+    [[nodiscard]] bool is_connected() const override = 0;
 
     // Scannable interface
     void start_scan() override = 0;
     void stop_scan() override = 0;
-    uint8_t get_found_count() const override = 0;
-    std::string_view get_found_name(uint8_t index) const override = 0;
-    int32_t get_found_signal_strength(uint8_t index) const override = 0;
+    [[nodiscard]] uint8_t get_found_count() const override = 0;
+    [[nodiscard]] std::string_view get_found_name(uint8_t index) const override = 0;
+    [[nodiscard]] int32_t get_found_signal_strength(uint8_t index) const override = 0;
 };
 
 } // namespace omusubi

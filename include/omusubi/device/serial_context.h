@@ -20,7 +20,7 @@ public:
 
     // ByteReadable interface
     size_t read(span<uint8_t> buffer) override = 0;
-    size_t available() const override = 0;
+    [[nodiscard]] size_t available() const override = 0;
 
     // TextReadable interface
     size_t read_line(span<char> buffer) override = 0;
@@ -34,7 +34,7 @@ public:
     // Connectable interface
     bool connect() override = 0;
     void disconnect() override = 0;
-    bool is_connected() const override = 0;
+    [[nodiscard]] bool is_connected() const override = 0;
 };
 
 } // namespace omusubi

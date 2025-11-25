@@ -56,7 +56,7 @@ struct format_string_checker {
     constexpr format_string_checker(const char (&str)[N]) noexcept {
         // C++17: constexprコンストラクタ内で検証
         // プレースホルダー数をカウント
-        uint32_t placeholder_count = count_placeholders(str, N - 1);
+        const uint32_t placeholder_count = count_placeholders(str, N - 1);
 
         // C++17では条件付きでコンパイルエラーを出すことが困難
         // そのため、この検証は実行時にも行われる
@@ -95,7 +95,7 @@ public:
     template <uint32_t N>
     constexpr basic_format_string(const char (&str)[N]) noexcept : str_(str), length_(N - 1) {
         // constexprコンテキストでの検証を試みる
-        [[maybe_unused]] detail::format_string_checker<N, sizeof...(Args)> checker(str);
+        [[maybe_unused]] const detail::format_string_checker<N, sizeof...(Args)> checker(str);
     }
 
     /**
@@ -533,7 +533,7 @@ void format_impl(FixedString<Capacity>& result, std::string_view format_str, uin
             if (pos + 1 < format_len && format_str[pos + 1] == '}') {
                 // 現在の引数を変換
                 char buffer[64] = {};
-                uint32_t len = formatter<typename remove_cv_ref<T>::type>::to_string(value, buffer, sizeof(buffer));
+                const uint32_t len = formatter<typename remove_cv_ref<T>::type>::to_string(value, buffer, sizeof(buffer));
 
                 if (len > 0) {
                     result.append(std::string_view(buffer, len));

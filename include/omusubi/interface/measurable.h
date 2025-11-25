@@ -17,7 +17,7 @@ public:
     Measurable1D& operator=(Measurable1D&&) = delete;
 
     /** @brief センサー値を取得 */
-    virtual float get_value() const = 0;
+    [[nodiscard]] virtual float get_value() const = 0;
 };
 
 /**
@@ -33,7 +33,7 @@ public:
     Measurable3D& operator=(Measurable3D&&) = delete;
 
     /** @brief X/Y/Z軸の値をまとめて取得 */
-    virtual Vector3 get_values() const = 0;
+    [[nodiscard]] virtual Vector3 get_values() const = 0;
 };
 
 } // namespace omusubi

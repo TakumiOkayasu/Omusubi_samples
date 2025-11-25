@@ -21,7 +21,7 @@ public:
     virtual void disconnect() = 0;
 
     /** @brief 接続状態を確認 */
-    virtual bool is_connected() const = 0;
+    [[nodiscard]] virtual bool is_connected() const = 0;
 };
 
 } // namespace omusubi

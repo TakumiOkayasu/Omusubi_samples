@@ -17,13 +17,13 @@ public:
     PowerContext& operator=(PowerContext&&) = delete;
 
     /** @brief 電源状態を取得 */
-    virtual PowerState get_power_state() const = 0;
+    [[nodiscard]] virtual PowerState get_power_state() const = 0;
 
     /** @brief バッテリーレベルを取得（0-100%） */
-    virtual uint8_t get_battery_level() const = 0;
+    [[nodiscard]] virtual uint8_t get_battery_level() const = 0;
 
     /** @brief 充電中かどうか */
-    virtual bool is_charging() const = 0;
+    [[nodiscard]] virtual bool is_charging() const = 0;
 };
 
 } // namespace omusubi
