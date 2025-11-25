@@ -1,4 +1,4 @@
-// basic_format_stringのデモ（C++23互換の型安全なフォーマット文字列）
+// basic_format_stringのデモ（C++17、C++23互換の型安全なフォーマット文字列）
 
 #include <cstdio>
 #include <omusubi/core/format.hpp>
@@ -86,7 +86,7 @@ int main() {
     printf("  std::format_string<int> fs(\"Value: {}\");\n");
     printf("  auto s = std::format(fs, 42);\n");
     printf("\n");
-    printf("Omusubi (C++14):\n");
+    printf("Omusubi (C++17):\n");
     printf("  auto s = fmt(\"Value: {}\", 42);\n");
     printf("  format_string<int> fs(\"Value: {}\");\n");
     printf("  auto s = fmt(fs, 42);\n");

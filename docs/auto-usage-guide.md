@@ -4,7 +4,7 @@
 
 **特に必要がなければ、変数は`auto`で受け取る。**
 
-C++14の型推論機能（`auto`）を積極的に使用することで、コードの保守性と可読性を向上させます。
+C++17の型推論機能（`auto`）を積極的に使用することで、コードの保守性と可読性を向上させます。
 
 ## `auto`を使用する理由
 
@@ -460,9 +460,9 @@ auto result = perform_operation();  // What type is this?
    - コンパイル時評価では`std::move()`は無意味
    - すべてコンパイラが最適化する
 
-4. **C++14の制約**
-   - ムーブコンストラクタは`constexpr`にできない（C++14）
-   - コンパイル時評価で使えない
+4. **constexprの制約**
+   - C++14ではムーブコンストラクタは`constexpr`にできなかった
+   - C++17でも制約は残る（実質的にはコピーで十分）
 
 ### `std::move()`とは何か？
 
@@ -513,7 +513,7 @@ std::string_view get_view() {
 // ✗ 誤用: constexprでは無意味
 constexpr auto create_string() {
     auto str = static_string("Hello");
-    return std::move(str);  // ← C++14ではconstexprムーブ不可
+    return std::move(str);  // ← constexprムーブは不要
 }
 
 // ✅ 正しい: 単純にreturn
@@ -524,9 +524,9 @@ constexpr auto create_string() {
 ```
 
 **なぜ誤用か:**
-- C++14ではムーブコンストラクタを`constexpr`にできない
-- コンパイル時評価では`std::move()`は無意味
-- すべてコンパイラが最適化
+- constexprコンテキストでは`std::move()`は無意味
+- コンパイル時評価ではすべてコンパイラが最適化
+- 小さなオブジェクトはコピーで十分
 
 #### ❌ 誤用3: 参照を返す関数
 

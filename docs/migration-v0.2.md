@@ -131,7 +131,7 @@ omusubi/
        https://github.com/TakumiOkayasu/omusubi.git#platforms/m5stack
 
    build_flags =
-       -std=c++14
+       -std=c++17
    ```
 
 2. 依存関係を更新:
