@@ -298,37 +298,44 @@ auto* reg = reinterpret_cast<volatile uint32_t*>(0x40000000);
 
 ## ブランチ戦略
 
-### ブランチモデル
+### GitHub Flow
+
+Omusubiでは**GitHub Flow**を採用しています。シンプルで継続的デリバリーに適したモデルです。
 
 ```
-main (保護ブランチ)
-  ├─ develop (開発ブランチ)
-  │   ├─ feature/add-wifi-support
-  │   ├─ feature/ble-improvements
-  │   ├─ fix/serial-timeout
-  │   └─ docs/update-architecture
-  └─ release/v1.0.0
+main ─────●─────●─────●─────●───── (常にリリース可能)
+           \   /       \   /
+            ●─●         ●─● feature/xxx, fix/xxx
 ```
 
-### ブランチ命名規則
+**特徴:**
+- `main`ブランチは常にリリース可能な状態を維持
+- 開発はすべて`main`から分岐したブランチで実施
+- PRレビュー・CI通過後に`main`へマージ
+- リリースはタグで管理
 
-- `feature/*` - 新機能追加
-- `fix/*` - バグ修正
-- `refactor/*` - リファクタリング
-- `docs/*` - ドキュメント更新
-- `test/*` - テスト追加・改善
-- `chore/*` - ビルド設定、依存関係更新等
+### ブランチ構成
+
+| ブランチ | 用途 |
+|----------|------|
+| `main` | 安定版。常にビルド・テストが通る状態を維持 |
+| `feature/*` | 新機能開発 (`feature/add-wifi-support`) |
+| `fix/*` | バグ修正 (`fix/serial-timeout`) |
+| `refactor/*` | リファクタリング (`refactor/simplify-context`) |
+| `docs/*` | ドキュメント更新 (`docs/update-architecture`) |
+| `test/*` | テスト追加・改善 (`test/add-format-tests`) |
+| `chore/*` | ビルド設定、依存関係更新等 (`chore/update-clang-tidy`) |
 
 ### ワークフロー
 
-1. **feature/fixブランチの作成**
+1. **mainから分岐**
 
 ```bash
 # mainから最新を取得
 git checkout main
 git pull origin main
 
-# feature/fixブランチを作成
+# 作業ブランチを作成
 git checkout -b feature/add-temperature-sensor
 ```
 
@@ -349,11 +356,45 @@ git commit -m "feat: add temperature sensor context"
 
 ```bash
 # リモートにプッシュ
-git push origin feature/add-temperature-sensor
+git push -u origin feature/add-temperature-sensor
 
 # GitHubでPRを作成
 gh pr create --title "feat: Add temperature sensor support" --body "..."
 ```
+
+4. **マージ後のクリーンアップ**
+
+```bash
+# mainに戻る
+git checkout main
+git pull origin main
+
+# マージ済みブランチを削除
+git branch -d feature/add-temperature-sensor
+```
+
+### リリース管理
+
+リリースはタグで管理します。`release/*`ブランチは使用しません。
+
+```bash
+# バージョンタグを作成
+git tag -a v0.1.0 -m "Initial release"
+git tag -a v0.2.0 -m "Add logger singleton"
+
+# タグをプッシュ
+git push origin v0.2.0
+```
+
+### なぜGitHub Flowか
+
+| 比較項目 | Git Flow | GitHub Flow |
+|----------|----------|-------------|
+| 複雑さ | 高（develop, release, hotfix...） | 低（mainのみ） |
+| 向いている規模 | 大規模チーム・複雑なリリース | 小〜中規模・継続的デリバリー |
+| Omusubi | ❌ 過剰 | ✅ 適切 |
+
+チームが拡大したり、複数バージョンの並行保守が必要になった場合は、`release/*`ブランチを追加する形で段階的に拡張できます。
 
 ## コミットメッセージ規約
 
@@ -643,5 +684,5 @@ CHANGELOG.md                 # 変更履歴
 
 ---
 
-**Version:** 2.0.0
-**Last Updated:** 2025-11-25
+**Version:** 2.0.1
+**Last Updated:** 2025-11-27
