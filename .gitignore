@@ -153,4 +153,7 @@ tests/doctest.h
 # Backup files
 _backup/
 
+# test header
+tests/doctest.h
+
 # End of https://www.toptal.com/developers/gitignore/api/c++
