@@ -1,6 +1,9 @@
 // すべてのテストを実行するメインプログラム
 
-#include <cstdio>
+#include <iostream>
+#include <omusubi/core/format.hpp>
+
+using namespace omusubi;
 
 // 各テストのmain関数を外部宣言
 namespace span_test {
@@ -24,10 +27,10 @@ extern int main();
 }
 
 int main() {
-    printf("\n");
-    printf("╔═══════════════════════════════════════╗\n");
-    printf("║  Omusubi フレームワーク 単体テスト    ║\n");
-    printf("╚═══════════════════════════════════════╝\n");
+    std::cout << "\n";
+    std::cout << "╔═══════════════════════════════════════╗\n";
+    std::cout << "║  Omusubi フレームワーク 単体テスト    ║\n";
+    std::cout << "╚═══════════════════════════════════════╝\n";
 
     int total_failures = 0;
 
@@ -39,15 +42,15 @@ int main() {
     total_failures += vector3_test::main();
 
     // 最終結果
-    printf("\n");
-    printf("╔═══════════════════════════════════════╗\n");
+    std::cout << "\n";
+    std::cout << "╔═══════════════════════════════════════╗\n";
     if (total_failures == 0) {
-        printf("║  ✓ すべてのテストが成功しました       ║\n");
+        std::cout << "║  ✓ すべてのテストが成功しました       ║\n";
     } else {
-        printf("║  ✗ %d 個のテストが失敗しました         ║\n", total_failures);
+        std::cout << format("║  ✗ {} 個のテストが失敗しました         ║\n", total_failures).c_str();
     }
-    printf("╚═══════════════════════════════════════╝\n");
-    printf("\n");
+    std::cout << "╚═══════════════════════════════════════╝\n";
+    std::cout << "\n";
 
     return total_failures;
 }
