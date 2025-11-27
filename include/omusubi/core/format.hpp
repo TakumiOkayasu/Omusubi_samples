@@ -444,6 +444,7 @@ struct remove_cv_ref<const T (&)[N]> {
  */
 template <typename T>
 struct formatter {
+    // NOLINTNEXTLINE(readability-function-size)
     static constexpr uint32_t to_string(T value, char* buffer, uint32_t buffer_size) noexcept {
         // 符号付き整数型
         if constexpr (std::is_same_v<T, int8_t> || std::is_same_v<T, int16_t>) {
@@ -544,6 +545,7 @@ void format_impl(FixedString<Capacity>& result, std::string_view format_str, uin
  * @brief フォーマット実装（可変長引数）
  */
 template <uint32_t Capacity, typename T, typename... Args>
+// NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
 void format_impl(FixedString<Capacity>& result, std::string_view format_str, uint32_t& arg_index, T&& value, Args&&... args) noexcept {
     // フォーマット文字列を解析
     uint32_t pos = 0;
@@ -611,6 +613,7 @@ namespace omusubi {
  * @endcode
  */
 template <uint32_t Capacity, typename... FmtArgs, typename... Args>
+// NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
 constexpr FixedString<Capacity> format(const basic_format_string<FmtArgs...>& format_str, Args&&... args) noexcept {
     FixedString<Capacity> result;
     uint32_t arg_index = 0;
@@ -630,6 +633,7 @@ constexpr FixedString<Capacity> format(const basic_format_string<FmtArgs...>& fo
  * @endcode
  */
 template <uint32_t Capacity, uint32_t N, typename... Args>
+// NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
 constexpr FixedString<Capacity> format(const char (&format_str)[N], Args&&... args) noexcept {
     return format<Capacity>(basic_format_string<Args...>(format_str), args...);
 }
@@ -646,6 +650,7 @@ constexpr FixedString<Capacity> format(const char (&format_str)[N], Args&&... ar
  * @endcode
  */
 template <uint32_t N, typename... Args>
+// NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
 constexpr auto format(const char (&format_str)[N], Args&&... args) noexcept -> FixedString<detail::calculate_capacity<N, typename detail::remove_cv_ref<Args>::type...>::value> {
     constexpr uint32_t capacity = detail::calculate_capacity<N, typename detail::remove_cv_ref<Args>::type...>::value;
     return format<capacity>(basic_format_string<Args...>(format_str), args...);
@@ -657,6 +662,7 @@ constexpr auto format(const char (&format_str)[N], Args&&... args) noexcept -> F
  * 実行時に構築されたstd::string_viewから使用
  */
 template <uint32_t Capacity, typename... Args>
+// NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
 constexpr FixedString<Capacity> format(std::string_view format_str, Args&&... args) noexcept {
     return format<Capacity>(basic_format_string<Args...>(format_str), args...);
 }
@@ -697,6 +703,7 @@ FixedString<Capacity> format_hex(T value, bool uppercase = false) noexcept {
  * @endcode
  */
 template <uint32_t N, typename... FmtArgs, typename... Args>
+// NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
 constexpr bool format_to(FixedString<N>& result, const basic_format_string<FmtArgs...>& format_str, Args&&... args) noexcept {
     result.clear();
     uint32_t arg_index = 0;
@@ -716,6 +723,7 @@ constexpr bool format_to(FixedString<N>& result, const basic_format_string<FmtAr
  * @endcode
  */
 template <uint32_t N, uint32_t M, typename... Args>
+// NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
 constexpr bool format_to(FixedString<N>& result, const char (&format_str)[M], Args&&... args) noexcept {
     return format_to(result, basic_format_string<Args...>(format_str), args...);
 }
@@ -732,6 +740,7 @@ constexpr bool format_to(FixedString<N>& result, const char (&format_str)[M], Ar
  * @endcode
  */
 template <uint32_t N, typename... Args>
+// NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
 constexpr auto format_to(const char (&format_str)[N], Args&&... args) noexcept -> FixedString<detail::calculate_capacity<N, typename detail::remove_cv_ref<Args>::type...>::value> {
     constexpr uint32_t capacity = detail::calculate_capacity<N, typename detail::remove_cv_ref<Args>::type...>::value;
     FixedString<capacity> result;
@@ -745,6 +754,7 @@ constexpr auto format_to(const char (&format_str)[N], Args&&... args) noexcept -
  * 実行時に構築されたstd::string_viewから使用
  */
 template <uint32_t N, typename... Args>
+// NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
 constexpr bool format_to(FixedString<N>& result, std::string_view format_str, Args&&... args) noexcept {
     return format_to(result, basic_format_string<Args...>(format_str), args...);
 }
@@ -783,6 +793,7 @@ bool format_hex_to(FixedString<N>& result, T value, bool uppercase = false) noex
  * @endcode
  */
 template <typename... FmtArgs, typename... Args>
+// NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
 constexpr FixedString<256> fmt(const basic_format_string<FmtArgs...>& format_str, Args&&... args) noexcept {
     return format<256>(format_str, args...);
 }
@@ -799,6 +810,7 @@ constexpr FixedString<256> fmt(const basic_format_string<FmtArgs...>& format_str
  * @endcode
  */
 template <uint32_t N, typename... Args>
+// NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
 constexpr FixedString<256> fmt(const char (&format_str)[N], Args&&... args) noexcept {
     return format<256>(basic_format_string<Args...>(format_str), args...);
 }
@@ -809,6 +821,7 @@ constexpr FixedString<256> fmt(const char (&format_str)[N], Args&&... args) noex
  * 実行時に構築されたstd::string_viewから使用
  */
 template <typename... Args>
+// NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
 constexpr FixedString<256> fmt(std::string_view format_str, Args&&... args) noexcept {
     return format<256>(basic_format_string<Args...>(format_str), args...);
 }

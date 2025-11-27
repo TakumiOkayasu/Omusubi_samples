@@ -90,10 +90,10 @@ public:
         }
 
         for (uint32_t i = 0; i < view_size; ++i) {
-            buffer_[byte_length_++] = view[i];
+            buffer_[byte_length_++] = view[i]; // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
         }
 
-        buffer_[byte_length_] = '\0';
+        buffer_[byte_length_] = '\0'; // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
 
         return true;
     }
@@ -117,8 +117,8 @@ public:
             return false;
         }
 
-        buffer_[byte_length_++] = c;
-        buffer_[byte_length_] = '\0';
+        buffer_[byte_length_++] = c;  // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
+        buffer_[byte_length_] = '\0'; // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
 
         return true;
     }

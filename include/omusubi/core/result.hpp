@@ -53,6 +53,7 @@ public:
      * @param value 成功時の値（ムーブ）
      * @return 成功を表す Result
      */
+    // NOLINTNEXTLINE(cppcoreguidelines-rvalue-reference-param-not-moved)
     static Result ok(T&& value) noexcept {
         Result r;
         r.is_ok_ = true;
@@ -77,6 +78,7 @@ public:
      * @param error エラー情報（ムーブ）
      * @return エラーを表す Result
      */
+    // NOLINTNEXTLINE(cppcoreguidelines-rvalue-reference-param-not-moved)
     static Result err(E&& error) noexcept {
         Result r;
         r.is_ok_ = false;
